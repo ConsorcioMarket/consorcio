@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowUpDown, Eye } from 'lucide-react'
+import { ArrowUpDown, Eye, Plus, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -12,6 +12,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatCurrency, formatPercentage, getCotaStatusLabel } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useCart } from '@/contexts/CartContext'
+import { useToast } from '@/components/ui/toast'
 import type { Cota } from '@/types/database'
 import type { SortField, SortDirection } from '@/hooks/useListings'
 
@@ -36,6 +39,27 @@ export function ListingTable({
   sortDirection,
   currentUserId,
 }: ListingTableProps) {
+  const { addItem, isInCart, canAddToCart } = useCart()
+  const { addToast } = useToast()
+
+  const handleAddToCart = (listing: Cota, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const result = addItem(listing)
+    if (result.success) {
+      addToast({
+        title: 'Cota adicionada',
+        description: 'A cota foi adicionada à sua composição.',
+        variant: 'success',
+      })
+    } else {
+      addToast({
+        title: 'Não foi possível adicionar',
+        description: result.error || 'Erro ao adicionar cota.',
+        variant: 'warning',
+      })
+    }
+  }
+
   const SortableHeader = ({
     field,
     children,
@@ -78,9 +102,38 @@ export function ListingTable({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <span className="ml-3 text-muted-foreground">Carregando cotas...</span>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Administradora</TableHead>
+              <TableHead>Crédito</TableHead>
+              <TableHead>Saldo Devedor</TableHead>
+              <TableHead>Parcelas</TableHead>
+              <TableHead>Entrada</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-24" />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     )
   }
@@ -117,11 +170,13 @@ export function ListingTable({
           {listings.map((listing) => {
             const isMine = currentUserId === listing.seller_id
             const isReserved = listing.status === 'RESERVED'
+            const inCart = isInCart(listing.id)
+            const { canAdd } = canAddToCart(listing)
 
             return (
               <TableRow
                 key={listing.id}
-                className={`${isMine ? 'bg-muted/30' : ''} cursor-pointer hover:bg-muted/50`}
+                className={`${isMine ? 'bg-muted/30' : ''} ${inCart ? 'bg-primary/5' : ''} cursor-pointer hover:bg-muted/50`}
                 onClick={() => onViewDetails(listing)}
               >
                 <TableCell className="font-medium">{listing.administrator}</TableCell>
@@ -154,15 +209,35 @@ export function ListingTable({
                       <Eye className="h-4 w-4" />
                     </Button>
                     {!isMine && !isReserved && (
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onInterest(listing.id)
-                        }}
-                      >
-                        Tenho Interesse
-                      </Button>
+                      <>
+                        {inCart ? (
+                          <Badge variant="success" className="text-xs flex items-center gap-1">
+                            <Check className="h-3 w-3" />
+                            Na composição
+                          </Badge>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant={canAdd ? 'outline' : 'ghost'}
+                            onClick={(e) => handleAddToCart(listing, e)}
+                            disabled={!canAdd}
+                            title={canAdd ? 'Adicionar à composição' : 'Não é possível adicionar'}
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Compor
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          className="bg-secondary hover:bg-secondary/90 text-white"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onInterest(listing.id)
+                          }}
+                        >
+                          Interesse
+                        </Button>
+                      </>
                     )}
                     {isMine && (
                       <Badge variant="outline" className="text-xs">

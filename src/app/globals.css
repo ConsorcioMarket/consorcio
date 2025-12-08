@@ -1,27 +1,50 @@
 @import "tailwindcss";
 
 :root {
+  /* ConsorcioMarket Color Palette */
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --foreground: 224 71% 4%;
+
+  /* Cards */
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 224 71% 4%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 142.1 76.2% 36.3%;
-  --primary-foreground: 355.7 100% 97.3%;
-  --primary-darker: 142.1 76.2% 26%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 142.1 76.2% 36.3%;
+  --popover-foreground: 224 71% 4%;
+
+  /* Primary: Teal/Cyan - Main action buttons */
+  --primary: 168 76% 47%;
+  --primary-foreground: 0 0% 100%;
+  --primary-darker: 168 76% 38%;
+
+  /* Secondary accent: Purple/Violet - Used in gradients */
+  --secondary: 263 70% 50%;
+  --secondary-foreground: 0 0% 100%;
+
+  /* Muted elements */
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+
+  /* Accent */
+  --accent: 220 14% 96%;
+  --accent-foreground: 224 71% 4%;
+
+  /* Destructive */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Borders and inputs */
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 168 76% 47%;
   --radius: 0.5rem;
+
+  /* Custom: Dark navy for header */
+  --navy: 228 29% 15%;
+  --navy-light: 228 24% 20%;
+
+  /* Custom: Purple gradient colors */
+  --purple-start: 263 70% 50%;
+  --purple-end: 250 80% 60%;
 }
 
 @theme inline {
@@ -45,6 +68,8 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-navy: hsl(var(--navy));
+  --color-navy-light: hsl(var(--navy-light));
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --radius-sm: calc(var(--radius) - 4px);
@@ -63,12 +88,77 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Custom gradient for hero section */
+/* Custom gradient for hero section - Purple gradient like ConsorcioMarket */
 .bg-gradient-hero {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-darker)) 100%);
+  background: linear-gradient(180deg, hsl(var(--purple-start)) 0%, hsl(var(--purple-end)) 100%);
 }
 
 /* Section backgrounds */
 .section-light {
-  background-color: hsl(210 40% 98%);
+  background-color: hsl(220 20% 97%);
+}
+
+/* Navy header background */
+.bg-navy {
+  background-color: hsl(var(--navy));
+}
+
+.bg-navy-light {
+  background-color: hsl(var(--navy-light));
+}
+
+/* Toast animations */
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.slide-in-from-right-full {
+  animation-name: slide-in-from-right;
+}
+
+.fade-in {
+  animation-name: fade-in;
+}
+
+/* Skeleton loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }

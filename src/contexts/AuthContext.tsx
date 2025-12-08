@@ -19,7 +19,7 @@ interface AuthContextType {
 
 interface SignUpData {
   full_name: string
-  cpf: string
+  cpf?: string
   phone?: string
 }
 
@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .insert({
             id: data.user.id,
             full_name: userData.full_name,
-            cpf: userData.cpf,
+            cpf: userData.cpf || '',
             phone: userData.phone || null,
             role: 'USER' as UserRole,
           })
