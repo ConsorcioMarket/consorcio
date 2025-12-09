@@ -61,15 +61,15 @@ export function CartDrawer() {
               </div>
 
               {/* Cart items */}
-              <div className="space-y-3">
+              <div className="space-y-3 animate-stagger">
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className="bg-white border rounded-lg p-4 relative group"
+                    className="bg-white border rounded-lg p-4 relative group transition-all duration-200 hover:shadow-md hover:border-primary/30"
                   >
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
                       title="Remover"
                     >
                       <X className="h-4 w-4" />
@@ -149,14 +149,14 @@ export function CartDrawer() {
 
             <SheetFooter className="flex-col gap-2 sm:flex-col">
               {user ? (
-                <Button className="w-full" onClick={() => setIsOpen(false)} asChild>
+                <Button className="w-full press-effect hover-lift" onClick={() => setIsOpen(false)} asChild>
                   <Link href="/composicao-credito">
                     Finalizar Proposta
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Link>
                 </Button>
               ) : (
-                <Button className="w-full" onClick={() => setIsOpen(false)} asChild>
+                <Button className="w-full press-effect hover-lift" onClick={() => setIsOpen(false)} asChild>
                   <Link href="/login?returnUrl=/composicao-credito">
                     Entrar para Continuar
                     <ArrowRight className="h-4 w-4 ml-2" />
@@ -165,7 +165,7 @@ export function CartDrawer() {
               )}
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full transition-colors duration-200"
                 onClick={() => setIsOpen(false)}
               >
                 Continuar Navegando

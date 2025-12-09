@@ -118,13 +118,13 @@ export function Header() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsOpen(true)}
-                className="relative flex items-center gap-2 bg-white text-navy border-white hover:bg-gray-100"
+                className="relative flex items-center gap-2 bg-white text-navy border-white hover:bg-gray-100 transition-all duration-200 hover:scale-105 animate-fade-in-scale"
               >
                 <ShoppingCart className="h-4 w-4" />
-                <span className="hidden lg:inline font-semibold">
+                <span className="hidden lg:inline font-semibold tabular-nums">
                   {formatCurrency(totals.totalCredit)}
                 </span>
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center badge-pulse">
                   {items.length}
                 </span>
               </Button>
@@ -159,7 +159,7 @@ export function Header() {
 
                   {/* Dropdown */}
                   {userMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border py-2 z-50">
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border py-2 z-50 animate-fade-in-scale origin-top-right">
                       {/* User Info */}
                       <div className="px-4 py-2 border-b">
                         <p className="font-medium text-gray-900">{profile?.full_name || 'Usuário'}</p>
@@ -170,18 +170,18 @@ export function Header() {
                       <div className="px-4 py-3 border-b grid grid-cols-2 gap-2">
                         <Link
                           href="/minhas-cotas"
-                          className="flex flex-col items-center p-2 rounded hover:bg-gray-50"
+                          className="flex flex-col items-center p-2 rounded hover:bg-gray-50 transition-all duration-200 hover:scale-105"
                           onClick={() => setUserMenuOpen(false)}
                         >
-                          <span className="text-lg font-bold text-primary">{userStats.cotasCount}</span>
+                          <span className="text-lg font-bold text-primary tabular-nums">{userStats.cotasCount}</span>
                           <span className="text-xs text-gray-500">Minhas Cotas</span>
                         </Link>
                         <Link
                           href="/minhas-propostas"
-                          className="flex flex-col items-center p-2 rounded hover:bg-gray-50 relative"
+                          className="flex flex-col items-center p-2 rounded hover:bg-gray-50 relative transition-all duration-200 hover:scale-105"
                           onClick={() => setUserMenuOpen(false)}
                         >
-                          <span className="text-lg font-bold text-primary">{userStats.proposalsCount}</span>
+                          <span className="text-lg font-bold text-primary tabular-nums">{userStats.proposalsCount}</span>
                           <span className="text-xs text-gray-500">Propostas</span>
                           {userStats.pendingProposals > 0 && (
                             <span className="absolute top-1 right-1 flex items-center gap-1 text-xs text-yellow-600">
@@ -196,7 +196,7 @@ export function Header() {
                       <div className="py-1">
                         <Link
                           href="/minhas-cotas"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
                           onClick={() => setUserMenuOpen(false)}
                         >
                           <FileText className="h-4 w-4 text-gray-400" />
@@ -204,7 +204,7 @@ export function Header() {
                         </Link>
                         <Link
                           href="/minhas-propostas"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
                           onClick={() => setUserMenuOpen(false)}
                         >
                           <FileText className="h-4 w-4 text-gray-400" />
@@ -217,7 +217,7 @@ export function Header() {
                         </Link>
                         <Link
                           href="/publicar-cota"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
                           onClick={() => setUserMenuOpen(false)}
                         >
                           <PlusCircle className="h-4 w-4 text-gray-400" />
@@ -225,7 +225,7 @@ export function Header() {
                         </Link>
                         <Link
                           href="/meus-dados"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
                           onClick={() => setUserMenuOpen(false)}
                         >
                           <Settings className="h-4 w-4 text-gray-400" />
@@ -240,7 +240,7 @@ export function Header() {
                             setUserMenuOpen(false)
                             handleSignOut()
                           }}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full transition-colors duration-150"
                         >
                           <LogOut className="h-4 w-4" />
                           Sair
@@ -296,8 +296,8 @@ export function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-700">
-            <nav className="flex flex-col space-y-4">
+          <div className="md:hidden py-4 border-t border-gray-700 animate-fade-in-down">
+            <nav className="flex flex-col space-y-4 animate-stagger">
               <Link
                 href="/"
                 className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-primary"

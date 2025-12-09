@@ -57,18 +57,18 @@ export function DrawerDetails({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-6 animate-fade-in-up">
           {/* Main Values */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-200 hover:shadow-md">
               <p className="text-sm text-muted-foreground">Valor do Crédito</p>
-              <p className="text-xl font-bold text-[hsl(var(--primary))]">
+              <p className="text-xl font-bold text-[hsl(var(--primary))] tabular-nums">
                 {formatCurrency(listing.credit_amount)}
               </p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-200 hover:shadow-md">
               <p className="text-sm text-muted-foreground">Entrada</p>
-              <p className="text-xl font-bold text-[hsl(var(--primary))]">
+              <p className="text-xl font-bold text-[hsl(var(--primary))] tabular-nums">
                 {formatCurrency(listing.entry_amount)}
               </p>
             </div>
@@ -122,7 +122,7 @@ export function DrawerDetails({
           <div className="space-y-3">
             {canPropose && (
               <Button
-                className="w-full"
+                className="w-full press-effect hover-lift"
                 size="lg"
                 onClick={() => {
                   onInterest(listing.id)

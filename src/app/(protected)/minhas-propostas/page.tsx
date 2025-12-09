@@ -62,34 +62,34 @@ function SummaryCards({ proposals }: { proposals: ProposalWithCota[] }) {
   const rejected = proposals.filter(p => p.status === 'REJECTED').length
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 animate-stagger">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
         <div className="flex items-center gap-2 text-yellow-700 mb-1">
           <Clock className="h-4 w-4" />
           <span className="text-sm font-medium">Em Análise</span>
         </div>
-        <p className="text-2xl font-bold text-yellow-800">{underReview}</p>
+        <p className="text-2xl font-bold text-yellow-800 tabular-nums">{underReview}</p>
       </div>
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
         <div className="flex items-center gap-2 text-green-700 mb-1">
           <CheckCircle className="h-4 w-4" />
           <span className="text-sm font-medium">Aprovadas</span>
         </div>
-        <p className="text-2xl font-bold text-green-800">{approved}</p>
+        <p className="text-2xl font-bold text-green-800 tabular-nums">{approved}</p>
       </div>
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
         <div className="flex items-center gap-2 text-blue-700 mb-1">
           <CreditCard className="h-4 w-4" />
           <span className="text-sm font-medium">Concluídas</span>
         </div>
-        <p className="text-2xl font-bold text-blue-800">{completed}</p>
+        <p className="text-2xl font-bold text-blue-800 tabular-nums">{completed}</p>
       </div>
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
         <div className="flex items-center gap-2 text-red-700 mb-1">
           <XCircle className="h-4 w-4" />
           <span className="text-sm font-medium">Rejeitadas</span>
         </div>
-        <p className="text-2xl font-bold text-red-800">{rejected}</p>
+        <p className="text-2xl font-bold text-red-800 tabular-nums">{rejected}</p>
       </div>
     </div>
   )
@@ -119,10 +119,10 @@ function StatusTimeline({ status }: { status: ProposalStatus }) {
         return (
           <div key={step.status} className="flex items-center">
             <div
-              className={`flex items-center justify-center w-6 h-6 rounded-full ${
+              className={`flex items-center justify-center w-6 h-6 rounded-full transition-all duration-300 ${
                 isCompleted
                   ? isCurrent
-                    ? 'bg-primary text-white'
+                    ? 'bg-primary text-white scale-110 shadow-md'
                     : 'bg-green-500 text-white'
                   : 'bg-gray-200 text-gray-400'
               }`}
@@ -132,7 +132,7 @@ function StatusTimeline({ status }: { status: ProposalStatus }) {
             </div>
             {index < TIMELINE_STEPS.length - 1 && (
               <div
-                className={`w-4 h-0.5 ${
+                className={`w-4 h-0.5 transition-colors duration-300 ${
                   index < currentIndex ? 'bg-green-500' : 'bg-gray-200'
                 }`}
               />
@@ -150,7 +150,7 @@ function ProposalCard({ proposal, onViewDetails }: { proposal: ProposalWithCota;
   const isRejected = proposal.status === 'REJECTED'
 
   return (
-    <Card className={`border ${isRejected ? 'border-red-200 bg-red-50/30' : proposal.status === 'COMPLETED' ? 'border-green-200 bg-green-50/30' : ''}`}>
+    <Card className={`border card-hover ${isRejected ? 'border-red-200 bg-red-50/30' : proposal.status === 'COMPLETED' ? 'border-green-200 bg-green-50/30' : ''}`}>
       <CardContent className="p-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Cota Info */}
@@ -184,7 +184,7 @@ function ProposalCard({ proposal, onViewDetails }: { proposal: ProposalWithCota;
           {/* Timeline and Actions */}
           <div className="flex flex-col items-end gap-3">
             <StatusTimeline status={proposal.status} />
-            <Button variant="outline" size="sm" onClick={onViewDetails}>
+            <Button variant="outline" size="sm" className="transition-all duration-200 hover:scale-105 press-effect" onClick={onViewDetails}>
               <Eye className="h-4 w-4 mr-1" />
               Detalhes
             </Button>

@@ -62,41 +62,41 @@ function SummaryCards({ cotas }: { cotas: CotaWithProposals[] }) {
   const pendingProposals = cotas.reduce((sum, c) => sum + (c.proposals?.underReview || 0), 0)
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8 animate-stagger">
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
         <div className="flex items-center gap-2 text-green-700 mb-1">
           <CheckCircle className="h-4 w-4" />
           <span className="text-sm font-medium">Disponíveis</span>
         </div>
-        <p className="text-2xl font-bold text-green-800">{available}</p>
+        <p className="text-2xl font-bold text-green-800 tabular-nums">{available}</p>
       </div>
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
         <div className="flex items-center gap-2 text-yellow-700 mb-1">
           <Clock className="h-4 w-4" />
           <span className="text-sm font-medium">Reservadas</span>
         </div>
-        <p className="text-2xl font-bold text-yellow-800">{reserved}</p>
+        <p className="text-2xl font-bold text-yellow-800 tabular-nums">{reserved}</p>
       </div>
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
         <div className="flex items-center gap-2 text-gray-700 mb-1">
           <CheckCircle className="h-4 w-4" />
           <span className="text-sm font-medium">Vendidas</span>
         </div>
-        <p className="text-2xl font-bold text-gray-800">{sold}</p>
+        <p className="text-2xl font-bold text-gray-800 tabular-nums">{sold}</p>
       </div>
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
         <div className="flex items-center gap-2 text-blue-700 mb-1">
           <Users className="h-4 w-4" />
           <span className="text-sm font-medium">Propostas</span>
         </div>
-        <p className="text-2xl font-bold text-blue-800">{totalProposals}</p>
+        <p className="text-2xl font-bold text-blue-800 tabular-nums">{totalProposals}</p>
       </div>
-      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
         <div className="flex items-center gap-2 text-orange-700 mb-1">
           <Clock className="h-4 w-4" />
           <span className="text-sm font-medium">Pendentes</span>
         </div>
-        <p className="text-2xl font-bold text-orange-800">{pendingProposals}</p>
+        <p className="text-2xl font-bold text-orange-800 tabular-nums">{pendingProposals}</p>
       </div>
     </div>
   )

@@ -68,18 +68,18 @@ export function ListingTable({
     children: React.ReactNode
   }) => (
     <TableHead
-      className="cursor-pointer hover:bg-primary/20 transition-colors text-center"
+      className="cursor-pointer hover:bg-primary/20 transition-all duration-200 text-center"
       onClick={() => onSort(field)}
     >
       <div className="flex items-center justify-center gap-1">
         {children}
         <ArrowUpDown
-          className={`h-4 w-4 ${
-            sortField === field ? 'text-primary' : 'text-muted-foreground'
+          className={`h-4 w-4 transition-all duration-200 ${
+            sortField === field ? 'text-primary scale-110' : 'text-muted-foreground'
           }`}
         />
         {sortField === field && (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground animate-fade-in-scale">
             {sortDirection === 'asc' ? '↑' : '↓'}
           </span>
         )}
@@ -176,7 +176,7 @@ export function ListingTable({
             return (
               <TableRow
                 key={listing.id}
-                className={`${isMine ? 'bg-muted/30' : ''} ${inCart ? 'bg-primary/5' : ''} cursor-pointer hover:bg-muted/50`}
+                className={`${isMine ? 'bg-muted/30' : ''} ${inCart ? 'bg-primary/5' : ''} cursor-pointer hover:bg-muted/50 transition-all duration-200 hover:shadow-sm`}
                 onClick={() => onViewDetails(listing)}
               >
                 <TableCell className="font-medium text-center">{listing.administrator}</TableCell>
@@ -201,6 +201,7 @@ export function ListingTable({
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="transition-all duration-200 hover:scale-110"
                       onClick={(e) => {
                         e.stopPropagation()
                         onViewDetails(listing)
@@ -211,7 +212,7 @@ export function ListingTable({
                     {!isMine && !isReserved && (
                       <>
                         {inCart ? (
-                          <Badge variant="success" className="text-xs flex items-center gap-1">
+                          <Badge variant="success" className="text-xs flex items-center gap-1 animate-bounce-in">
                             <Check className="h-3 w-3" />
                             Na composição
                           </Badge>
@@ -219,6 +220,7 @@ export function ListingTable({
                           <Button
                             size="sm"
                             variant={canAdd ? 'outline' : 'ghost'}
+                            className="transition-all duration-200 hover:scale-105 press-effect"
                             onClick={(e) => handleAddToCart(listing, e)}
                             disabled={!canAdd}
                             title={canAdd ? 'Adicionar à composição' : 'Não é possível adicionar'}
@@ -229,7 +231,7 @@ export function ListingTable({
                         )}
                         <Button
                           size="sm"
-                          className="bg-secondary hover:bg-secondary/90 text-white"
+                          className="bg-secondary hover:bg-secondary/90 text-white transition-all duration-200 hover:scale-105 press-effect"
                           onClick={(e) => {
                             e.stopPropagation()
                             onInterest(listing.id)

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Wallet, Eye, ChevronDown, ChevronUp, Phone, Mail, Instagram } from 'lucide-react'
+import { Shield, Wallet, Eye, ChevronDown, Phone, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
@@ -76,28 +76,28 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-hero text-white py-20 md:py-28">
+      <section className="bg-gradient-hero text-white py-20 md:py-28 overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center space-y-6">
-            <h1 className="text-3xl md:text-5xl font-bold leading-tight italic">
+            <h1 className="text-3xl md:text-5xl font-bold leading-tight italic animate-fade-in-up">
               O jeito mais seguro e barato de comprar e vender cotas contempladas
             </h1>
-            <p className="text-base md:text-lg text-white/90 max-w-3xl mx-auto">
+            <p className="text-base md:text-lg text-white/90 max-w-3xl mx-auto animate-fade-in-up animation-delay-200">
               O primeiro marketplace de consórcio contemplado com <strong>negociação direta entre comprador e vendedor</strong>.
               Cartas auditadas e <strong>pagamento protegido</strong> contra golpes. Crédito barato pronto para usar.{' '}
               <strong>Sem sorteio, sem intermediários e sem surpresas</strong>.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4 animate-fade-in-up animation-delay-400">
               <Button
                 size="lg"
-                className="text-base bg-primary text-white hover:bg-primary-darker rounded-full px-8"
+                className="text-base bg-primary text-white hover:bg-primary-darker rounded-full px-8 press-effect hover-lift"
                 onClick={() => router.push('/cotas')}
               >
                 Explorar cartas disponíveis
               </Button>
               <Button
                 size="lg"
-                className="text-base bg-secondary text-white hover:bg-secondary-darker rounded-full px-8"
+                className="text-base bg-secondary text-white hover:bg-secondary-darker rounded-full px-8 press-effect hover-lift"
                 onClick={() => router.push(user ? '/publicar-cota' : '/cadastro')}
               >
                 Quero vender minha cota
@@ -108,15 +108,15 @@ export default function Home() {
       </section>
 
       {/* Features Section - "O que oferecemos" */}
-      <section className="py-16 md:py-20 bg-white">
+      <section className="py-16 md:py-20 bg-white overflow-hidden">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12 animate-fade-in-up">
             O que oferecemos
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto animate-stagger">
             {features.map((feature, index) => (
-              <Card key={index} className="p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+              <Card key={index} className="p-6 border border-gray-200 card-hover">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
                   <feature.icon className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
@@ -137,29 +137,27 @@ export default function Home() {
             {steps.map((step, index) => (
               <div
                 key={index}
-                className="bg-white/10 backdrop-blur-sm rounded-lg overflow-hidden"
+                className="bg-white/10 backdrop-blur-sm rounded-lg overflow-hidden transition-all duration-300 hover:bg-white/15"
               >
                 <button
                   onClick={() => toggleStep(index)}
-                  className="w-full flex items-center justify-between p-4 text-left"
+                  className="w-full flex items-center justify-between p-4 text-left transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <span className="w-8 h-8 rounded-full border-2 border-white/50 flex items-center justify-center text-sm font-medium">
+                    <span className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-medium transition-all duration-300 ${openStep === index ? 'border-white bg-white/20 scale-110' : 'border-white/50'}`}>
                       {step.number}
                     </span>
                     <span className="font-medium">{step.title}</span>
                   </div>
-                  {openStep === index ? (
-                    <ChevronUp className="w-5 h-5" />
-                  ) : (
+                  <span className={`transition-transform duration-300 ${openStep === index ? 'rotate-180' : ''}`}>
                     <ChevronDown className="w-5 h-5" />
-                  )}
+                  </span>
                 </button>
-                {openStep === index && (
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openStep === index ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
                   <div className="px-4 pb-4 pl-16">
                     <p className="text-white/80 text-sm">{step.content}</p>
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
@@ -187,7 +185,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {/* Financing Card */}
-            <Card className="p-6 border border-gray-200">
+            <Card className="p-6 border border-gray-200 card-hover">
               <h3 className="text-lg font-semibold mb-4">Financiamento bancário</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -214,7 +212,7 @@ export default function Home() {
             </Card>
 
             {/* Consortium Card */}
-            <Card className="p-6 border-2 border-primary">
+            <Card className="p-6 border-2 border-primary card-hover">
               <h3 className="text-lg font-semibold mb-4">Consórcio contemplado</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -283,14 +281,14 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
-              className="text-base bg-primary text-white hover:bg-primary-darker rounded-full px-8"
+              className="text-base bg-primary text-white hover:bg-primary-darker rounded-full px-8 press-effect hover-lift"
               onClick={() => router.push('/cotas')}
             >
               Comprar cotas
             </Button>
             <Button
               size="lg"
-              className="text-base bg-secondary text-white hover:bg-secondary/90 rounded-full px-8"
+              className="text-base bg-secondary text-white hover:bg-secondary/90 rounded-full px-8 press-effect hover-lift"
               onClick={() => router.push(user ? '/publicar-cota' : '/cadastro')}
             >
               Vender minha cota
@@ -322,7 +320,7 @@ export default function Home() {
                   admin@consorciomarket.com.br
                 </p>
                 <p className="flex items-center gap-2">
-                  <Instagram className="w-4 h-4" />
+                  <span className="w-4 h-4">@</span>
                   @consorciomarket
                 </p>
               </div>
