@@ -81,8 +81,9 @@ enum DocumentType {
 
 model ProfilePF {
   id                   String   @id @default(uuid())
+  email                String   @default("")
   fullName             String   @map("full_name")
-  cpf                  String   @unique
+  cpf                  String?
   phone                String?
   role                 UserRole @default(USER)
   addressStreet        String?  @map("address_street")

@@ -39,8 +39,9 @@ export interface Database {
       profiles_pf: {
         Row: {
           id: string
+          email: string
           full_name: string
-          cpf: string
+          cpf: string | null
           phone: string | null
           role: UserRole
           address_street: string | null
@@ -55,8 +56,9 @@ export interface Database {
         }
         Insert: {
           id: string
+          email?: string
           full_name: string
-          cpf: string
+          cpf?: string | null
           phone?: string | null
           role?: UserRole
           address_street?: string | null
@@ -71,6 +73,7 @@ export interface Database {
         }
         Update: {
           id?: string
+          email?: string
           full_name?: string
           cpf?: string
           phone?: string | null

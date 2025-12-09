@@ -3,20 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FileText, Eye, AlertCircle } from 'lucide-react'
+import { FileText, Eye, AlertCircle, Clock, CheckCircle, XCircle, ArrowRight, FileCheck, CreditCard } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { formatCurrency, getProposalStatusLabel } from '@/lib/utils'
 import type { ProposalStatus, Cota } from '@/types/database'
 
@@ -45,6 +37,189 @@ function getStatusBadgeVariant(status: ProposalStatus): 'default' | 'secondary' 
     REJECTED: 'destructive',
   }
   return variants[status] || 'outline'
+}
+
+// Status timeline steps
+const TIMELINE_STEPS = [
+  { status: 'UNDER_REVIEW', label: 'Em Análise', icon: Clock },
+  { status: 'PRE_APPROVED', label: 'Pré-Aprovada', icon: FileCheck },
+  { status: 'APPROVED', label: 'Aprovada', icon: CheckCircle },
+  { status: 'TRANSFER_STARTED', label: 'Transferência', icon: ArrowRight },
+  { status: 'COMPLETED', label: 'Concluída', icon: CreditCard },
+]
+
+function getStatusIndex(status: ProposalStatus): number {
+  if (status === 'REJECTED') return -1
+  const index = TIMELINE_STEPS.findIndex(s => s.status === status)
+  return index >= 0 ? index : 0
+}
+
+// Summary cards component
+function SummaryCards({ proposals }: { proposals: ProposalWithCota[] }) {
+  const underReview = proposals.filter(p => p.status === 'UNDER_REVIEW' || p.status === 'PRE_APPROVED').length
+  const approved = proposals.filter(p => p.status === 'APPROVED' || p.status === 'TRANSFER_STARTED').length
+  const completed = proposals.filter(p => p.status === 'COMPLETED').length
+  const rejected = proposals.filter(p => p.status === 'REJECTED').length
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-yellow-700 mb-1">
+          <Clock className="h-4 w-4" />
+          <span className="text-sm font-medium">Em Análise</span>
+        </div>
+        <p className="text-2xl font-bold text-yellow-800">{underReview}</p>
+      </div>
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-green-700 mb-1">
+          <CheckCircle className="h-4 w-4" />
+          <span className="text-sm font-medium">Aprovadas</span>
+        </div>
+        <p className="text-2xl font-bold text-green-800">{approved}</p>
+      </div>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-blue-700 mb-1">
+          <CreditCard className="h-4 w-4" />
+          <span className="text-sm font-medium">Concluídas</span>
+        </div>
+        <p className="text-2xl font-bold text-blue-800">{completed}</p>
+      </div>
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-red-700 mb-1">
+          <XCircle className="h-4 w-4" />
+          <span className="text-sm font-medium">Rejeitadas</span>
+        </div>
+        <p className="text-2xl font-bold text-red-800">{rejected}</p>
+      </div>
+    </div>
+  )
+}
+
+// Timeline component
+function StatusTimeline({ status }: { status: ProposalStatus }) {
+  const currentIndex = getStatusIndex(status)
+  const isRejected = status === 'REJECTED'
+
+  if (isRejected) {
+    return (
+      <div className="flex items-center gap-2 text-red-600">
+        <XCircle className="h-5 w-5" />
+        <span className="text-sm font-medium">Proposta Rejeitada</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      {TIMELINE_STEPS.map((step, index) => {
+        const Icon = step.icon
+        const isCompleted = index <= currentIndex
+        const isCurrent = index === currentIndex
+
+        return (
+          <div key={step.status} className="flex items-center">
+            <div
+              className={`flex items-center justify-center w-6 h-6 rounded-full ${
+                isCompleted
+                  ? isCurrent
+                    ? 'bg-primary text-white'
+                    : 'bg-green-500 text-white'
+                  : 'bg-gray-200 text-gray-400'
+              }`}
+              title={step.label}
+            >
+              <Icon className="h-3 w-3" />
+            </div>
+            {index < TIMELINE_STEPS.length - 1 && (
+              <div
+                className={`w-4 h-0.5 ${
+                  index < currentIndex ? 'bg-green-500' : 'bg-gray-200'
+                }`}
+              />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Proposal card component
+function ProposalCard({ proposal, onViewDetails }: { proposal: ProposalWithCota; onViewDetails: () => void }) {
+  const currentIndex = getStatusIndex(proposal.status)
+  const isRejected = proposal.status === 'REJECTED'
+
+  return (
+    <Card className={`border ${isRejected ? 'border-red-200 bg-red-50/30' : proposal.status === 'COMPLETED' ? 'border-green-200 bg-green-50/30' : ''}`}>
+      <CardContent className="p-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Cota Info */}
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="font-semibold text-lg">{proposal.cota?.administrator || 'Administradora'}</h3>
+              <Badge variant={getStatusBadgeVariant(proposal.status)}>
+                {getProposalStatusLabel(proposal.status)}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Crédito:</span>
+                <p className="font-medium">{proposal.cota ? formatCurrency(proposal.cota.credit_amount) : '-'}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Entrada:</span>
+                <p className="font-medium">{proposal.cota ? formatCurrency(proposal.cota.entry_amount) : '-'}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Parcelas:</span>
+                <p className="font-medium">{proposal.cota?.n_installments}x</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Data:</span>
+                <p className="font-medium">{new Date(proposal.created_at).toLocaleDateString('pt-BR')}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Timeline and Actions */}
+          <div className="flex flex-col items-end gap-3">
+            <StatusTimeline status={proposal.status} />
+            <Button variant="outline" size="sm" onClick={onViewDetails}>
+              <Eye className="h-4 w-4 mr-1" />
+              Detalhes
+            </Button>
+          </div>
+        </div>
+
+        {/* Rejection reason */}
+        {isRejected && proposal.rejection_reason && (
+          <div className="mt-4 p-3 bg-red-100 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-800">Motivo da rejeição:</p>
+                <p className="text-sm text-red-700">{proposal.rejection_reason}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Current step info */}
+        {!isRejected && currentIndex >= 0 && currentIndex < TIMELINE_STEPS.length && (
+          <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <p className="text-sm">
+              <span className="font-medium text-primary">Próximo passo: </span>
+              {proposal.status === 'UNDER_REVIEW' && 'Aguardando análise da proposta pelo vendedor.'}
+              {proposal.status === 'PRE_APPROVED' && 'Envie os documentos necessários para aprovação final.'}
+              {proposal.status === 'APPROVED' && 'Realize o pagamento da entrada para iniciar a transferência.'}
+              {proposal.status === 'TRANSFER_STARTED' && 'Transferência em andamento junto à administradora.'}
+              {proposal.status === 'COMPLETED' && 'Parabéns! Sua cota foi transferida com sucesso.'}
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
 }
 
 export default function MinhasPropostasPage() {
@@ -124,7 +299,7 @@ export default function MinhasPropostasPage() {
           <Card className="bg-white shadow-lg border-0">
             <CardContent className="p-6">
               {/* Header */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-primary-darker">
                     Suas Propostas
@@ -133,12 +308,15 @@ export default function MinhasPropostasPage() {
                     {proposals.length} {proposals.length === 1 ? 'proposta' : 'propostas'} no total
                   </p>
                 </div>
-                <Link href="/">
+                <Link href="/cotas">
                   <Button variant="outline">
                     Ver Cotas Disponíveis
                   </Button>
                 </Link>
               </div>
+
+              {/* Summary Cards */}
+              {!loading && proposals.length > 0 && <SummaryCards proposals={proposals} />}
 
               {loading ? (
                 <div className="text-center py-12">
@@ -153,118 +331,38 @@ export default function MinhasPropostasPage() {
                   <p className="text-sm text-muted-foreground mb-6">
                     Explore as cotas disponíveis e clique em &quot;Tenho Interesse&quot; para iniciar uma proposta.
                   </p>
-                  <Link href="/">
+                  <Link href="/cotas">
                     <Button>Ver Cotas Disponíveis</Button>
                   </Link>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Administradora</TableHead>
-                        <TableHead>Crédito</TableHead>
-                        <TableHead>Entrada</TableHead>
-                        <TableHead>Parcelas</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {proposals.map((proposal) => (
-                        <TableRow key={proposal.id}>
-                          <TableCell className="font-medium">
-                            {proposal.cota?.administrator || '-'}
-                          </TableCell>
-                          <TableCell>
-                            {proposal.cota ? formatCurrency(proposal.cota.credit_amount) : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {proposal.cota ? formatCurrency(proposal.cota.entry_amount) : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {proposal.cota?.n_installments}x
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {proposal.buyer_type === 'PF' ? 'Pessoa Física' : 'Pessoa Jurídica'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={getStatusBadgeVariant(proposal.status)}>
-                              {getProposalStatusLabel(proposal.status)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(proposal.created_at).toLocaleDateString('pt-BR')}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => router.push(`/proposta/${proposal.id}`)}
-                              title="Ver detalhes"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-4">
+                  {proposals.map((proposal) => (
+                    <ProposalCard
+                      key={proposal.id}
+                      proposal={proposal}
+                      onViewDetails={() => router.push(`/proposta/${proposal.id}`)}
+                    />
+                  ))}
                 </div>
               )}
 
-              {/* Status Legend */}
+              {/* Timeline Legend */}
               {proposals.length > 0 && (
                 <div className="mt-8 pt-6 border-t">
-                  <h4 className="font-medium mb-3">Legenda de Status</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="warning" className="text-xs">Em Análise</Badge>
-                      <span className="text-muted-foreground">Aguardando</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="default" className="text-xs">Pré-Aprovada</Badge>
-                      <span className="text-muted-foreground">Docs pendentes</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="success" className="text-xs">Aprovada</Badge>
-                      <span className="text-muted-foreground">Aguardando pagamento</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="default" className="text-xs">Transferência</Badge>
-                      <span className="text-muted-foreground">Em andamento</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="success" className="text-xs">Concluída</Badge>
-                      <span className="text-muted-foreground">Finalizada</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="destructive" className="text-xs">Rejeitada</Badge>
-                      <span className="text-muted-foreground">Não aprovada</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Rejection Reasons */}
-              {proposals.some(p => p.status === 'REJECTED' && p.rejection_reason) && (
-                <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-red-800 mb-2">Propostas Rejeitadas</h4>
-                      {proposals
-                        .filter(p => p.status === 'REJECTED' && p.rejection_reason)
-                        .map(p => (
-                          <div key={p.id} className="text-sm text-red-700 mb-1">
-                            <strong>{p.cota?.administrator}:</strong> {p.rejection_reason}
+                  <h4 className="font-medium mb-4">Etapas do Processo</h4>
+                  <div className="flex flex-wrap gap-6">
+                    {TIMELINE_STEPS.map((step) => {
+                      const Icon = step.icon
+                      return (
+                        <div key={step.status} className="flex items-center gap-2">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 text-gray-600">
+                            <Icon className="h-3 w-3" />
                           </div>
-                        ))}
-                    </div>
+                          <span className="text-sm text-muted-foreground">{step.label}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}

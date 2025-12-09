@@ -90,14 +90,14 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Button
                 size="lg"
-                className="text-base bg-primary text-white hover:bg-primary/90 rounded-full px-8"
+                className="text-base bg-primary text-white hover:bg-primary-darker rounded-full px-8"
                 onClick={() => router.push('/cotas')}
               >
                 Explorar cartas disponíveis
               </Button>
               <Button
                 size="lg"
-                className="text-base bg-primary text-white hover:bg-primary/90 rounded-full px-8"
+                className="text-base bg-secondary text-white hover:bg-secondary-darker rounded-full px-8"
                 onClick={() => router.push(user ? '/publicar-cota' : '/cadastro')}
               >
                 Quero vender minha cota
@@ -283,14 +283,14 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
-              className="text-base bg-primary text-white hover:bg-primary/90 rounded-full px-8"
+              className="text-base bg-primary text-white hover:bg-primary-darker rounded-full px-8"
               onClick={() => router.push('/cotas')}
             >
               Comprar cotas
             </Button>
             <Button
               size="lg"
-              className="text-base bg-primary text-white hover:bg-primary/90 rounded-full px-8"
+              className="text-base bg-secondary text-white hover:bg-secondary/90 rounded-full px-8"
               onClick={() => router.push(user ? '/publicar-cota' : '/cadastro')}
             >
               Vender minha cota

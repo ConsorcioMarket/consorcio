@@ -62,7 +62,7 @@ export default function CotasPage() {
 
       {/* Main Content Section */}
       <section className="section-light pb-16 -mt-16">
-        <div className="container mx-auto px-4">
+        <div className="w-full max-w-[95vw] mx-auto px-4">
           <Card className="p-6 md:p-8 bg-white shadow-lg rounded-xl">
             {/* Page Header */}
             <div className="mb-6">

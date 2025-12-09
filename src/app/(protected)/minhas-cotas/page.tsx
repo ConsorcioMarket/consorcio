@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Eye, Pencil, Trash2, AlertCircle } from 'lucide-react'
+import { Plus, Eye, Pencil, Trash2, AlertCircle, Users, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,20 @@ import {
 import { formatCurrency, formatPercentage, getCotaStatusLabel } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
-import type { Cota, CotaStatus } from '@/types/database'
+import type { Cota, CotaStatus, ProposalStatus } from '@/types/database'
+
+// Proposal count by status for each cota
+interface ProposalSummary {
+  total: number
+  underReview: number
+  approved: number
+  rejected: number
+  completed: number
+}
+
+interface CotaWithProposals extends Cota {
+  proposals?: ProposalSummary
+}
 
 function getStatusBadgeVariant(status: CotaStatus): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' {
   const variants: Record<CotaStatus, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
@@ -40,11 +53,97 @@ function getStatusBadgeVariant(status: CotaStatus): 'default' | 'secondary' | 'd
   return variants[status] || 'outline'
 }
 
+// Summary cards component
+function SummaryCards({ cotas }: { cotas: CotaWithProposals[] }) {
+  const available = cotas.filter(c => c.status === 'AVAILABLE').length
+  const reserved = cotas.filter(c => c.status === 'RESERVED').length
+  const sold = cotas.filter(c => c.status === 'SOLD').length
+  const totalProposals = cotas.reduce((sum, c) => sum + (c.proposals?.total || 0), 0)
+  const pendingProposals = cotas.reduce((sum, c) => sum + (c.proposals?.underReview || 0), 0)
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-green-700 mb-1">
+          <CheckCircle className="h-4 w-4" />
+          <span className="text-sm font-medium">Disponíveis</span>
+        </div>
+        <p className="text-2xl font-bold text-green-800">{available}</p>
+      </div>
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-yellow-700 mb-1">
+          <Clock className="h-4 w-4" />
+          <span className="text-sm font-medium">Reservadas</span>
+        </div>
+        <p className="text-2xl font-bold text-yellow-800">{reserved}</p>
+      </div>
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-gray-700 mb-1">
+          <CheckCircle className="h-4 w-4" />
+          <span className="text-sm font-medium">Vendidas</span>
+        </div>
+        <p className="text-2xl font-bold text-gray-800">{sold}</p>
+      </div>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-blue-700 mb-1">
+          <Users className="h-4 w-4" />
+          <span className="text-sm font-medium">Propostas</span>
+        </div>
+        <p className="text-2xl font-bold text-blue-800">{totalProposals}</p>
+      </div>
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-orange-700 mb-1">
+          <Clock className="h-4 w-4" />
+          <span className="text-sm font-medium">Pendentes</span>
+        </div>
+        <p className="text-2xl font-bold text-orange-800">{pendingProposals}</p>
+      </div>
+    </div>
+  )
+}
+
+// Proposal indicator component
+function ProposalIndicator({ proposals }: { proposals?: ProposalSummary }) {
+  if (!proposals || proposals.total === 0) {
+    return <span className="text-muted-foreground text-sm">-</span>
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <span
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+        title={`${proposals.total} proposta(s) no total`}
+      >
+        <Users className="h-3 w-3" />
+        {proposals.total}
+      </span>
+      {proposals.underReview > 0 && (
+        <span
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
+          title={`${proposals.underReview} em análise`}
+        >
+          <Clock className="h-3 w-3" />
+          {proposals.underReview}
+        </span>
+      )}
+      {proposals.approved > 0 && (
+        <span
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+          title={`${proposals.approved} aprovada(s)`}
+        >
+          <CheckCircle className="h-3 w-3" />
+          {proposals.approved}
+        </span>
+      )}
+    </div>
+  )
+}
+
 export default function MinhasCotasPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const { addToast } = useToast()
-  const [cotas, setCotas] = useState<Cota[]>([])
+  const [cotas, setCotas] = useState<CotaWithProposals[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [cotaToDelete, setCotaToDelete] = useState<Cota | null>(null)
@@ -59,23 +158,76 @@ export default function MinhasCotasPage() {
     }
   }, [user, authLoading, router])
 
-  // Fetch user's cotas
+  // Fetch user's cotas with proposal counts
   useEffect(() => {
     const fetchCotas = async () => {
       if (!user) return
 
       setLoading(true)
-      const { data, error } = await supabase
+
+      // Fetch cotas
+      const { data: cotasData, error: cotasError } = await supabase
         .from('cotas')
         .select('*')
         .eq('seller_id', user.id)
         .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Error fetching cotas:', error)
-      } else {
-        setCotas(data || [])
+      if (cotasError) {
+        console.error('Error fetching cotas:', cotasError)
+        setLoading(false)
+        return
       }
+
+      // Fetch proposals for these cotas
+      const cotaIds = (cotasData || []).map(c => c.id)
+
+      if (cotaIds.length > 0) {
+        const { data: proposalsData, error: proposalsError } = await supabase
+          .from('proposals')
+          .select('cota_id, status')
+          .in('cota_id', cotaIds)
+
+        if (!proposalsError && proposalsData) {
+          // Group proposals by cota_id
+          const proposalsByCota: Record<string, ProposalSummary> = {}
+
+          proposalsData.forEach((p: { cota_id: string; status: ProposalStatus }) => {
+            if (!proposalsByCota[p.cota_id]) {
+              proposalsByCota[p.cota_id] = {
+                total: 0,
+                underReview: 0,
+                approved: 0,
+                rejected: 0,
+                completed: 0,
+              }
+            }
+            proposalsByCota[p.cota_id].total++
+
+            if (p.status === 'UNDER_REVIEW' || p.status === 'PRE_APPROVED') {
+              proposalsByCota[p.cota_id].underReview++
+            } else if (p.status === 'APPROVED' || p.status === 'TRANSFER_STARTED') {
+              proposalsByCota[p.cota_id].approved++
+            } else if (p.status === 'REJECTED') {
+              proposalsByCota[p.cota_id].rejected++
+            } else if (p.status === 'COMPLETED') {
+              proposalsByCota[p.cota_id].completed++
+            }
+          })
+
+          // Merge proposals into cotas
+          const cotasWithProposals: CotaWithProposals[] = (cotasData || []).map(cota => ({
+            ...cota,
+            proposals: proposalsByCota[cota.id] || undefined,
+          }))
+
+          setCotas(cotasWithProposals)
+        } else {
+          setCotas(cotasData || [])
+        }
+      } else {
+        setCotas(cotasData || [])
+      }
+
       setLoading(false)
     }
 
@@ -157,7 +309,7 @@ export default function MinhasCotasPage() {
           <Card className="bg-white shadow-lg border-0">
             <CardContent className="p-6">
               {/* Header with action button */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-primary-darker">
                     Suas Cotas Anunciadas
@@ -174,6 +326,9 @@ export default function MinhasCotasPage() {
                 </Link>
               </div>
 
+              {/* Summary Cards */}
+              {!loading && cotas.length > 0 && <SummaryCards cotas={cotas} />}
+
               {loading ? (
                 <div className="overflow-x-auto">
                   <Table>
@@ -184,6 +339,7 @@ export default function MinhasCotasPage() {
                         <TableHead>Entrada</TableHead>
                         <TableHead>Parcelas</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Propostas</TableHead>
                         <TableHead>Criada em</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -196,6 +352,7 @@ export default function MinhasCotasPage() {
                           <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                           <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                           <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                          <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
                           <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
@@ -229,13 +386,14 @@ export default function MinhasCotasPage() {
                         <TableHead>Entrada</TableHead>
                         <TableHead>Parcelas</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Propostas</TableHead>
                         <TableHead>Criada em</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {cotas.map((cota) => (
-                        <TableRow key={cota.id}>
+                        <TableRow key={cota.id} className={cota.proposals && cota.proposals.underReview > 0 ? 'bg-yellow-50/50' : ''}>
                           <TableCell className="font-medium">
                             {cota.administrator}
                           </TableCell>
@@ -251,6 +409,9 @@ export default function MinhasCotasPage() {
                             <Badge variant={getStatusBadgeVariant(cota.status)}>
                               {getCotaStatusLabel(cota.status)}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <ProposalIndicator proposals={cota.proposals} />
                           </TableCell>
                           <TableCell>
                             {new Date(cota.created_at).toLocaleDateString('pt-BR')}
@@ -298,10 +459,29 @@ export default function MinhasCotasPage() {
               {/* Legend */}
               {cotas.length > 0 && (
                 <div className="mt-6 pt-6 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Legenda:</strong> Cotas com status &quot;Disponível&quot; podem ser editadas ou excluídas.
-                    Cotas reservadas ou vendidas não podem ser alteradas.
-                  </p>
+                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <Users className="h-3 w-3" />
+                        N
+                      </span>
+                      <span>Total de propostas</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <Clock className="h-3 w-3" />
+                        N
+                      </span>
+                      <span>Em análise</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <CheckCircle className="h-3 w-3" />
+                        N
+                      </span>
+                      <span>Aprovadas</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>

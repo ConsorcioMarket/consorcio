@@ -31,20 +31,27 @@ const ADMINISTRATORS = [
   'Outra',
 ]
 
-// Parse currency input
+// Parse currency input (Brazilian format: 1.234,56)
 function parseCurrency(value: string): number {
-  const cleaned = value.replace(/[^\d,]/g, '').replace(',', '.')
+  // Remove thousand separators (dots) and replace decimal comma with dot
+  const cleaned = value.replace(/\./g, '').replace(',', '.')
   return parseFloat(cleaned) || 0
 }
 
-// Format currency input
-function formatCurrencyInput(value: string): string {
-  const num = parseCurrency(value)
-  if (isNaN(num) || num === 0) return ''
-  return new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num)
+// Handle currency input - simple approach without auto-formatting while typing
+function handleCurrencyInput(value: string): string {
+  // Only allow digits and one comma (decimal separator)
+  let cleaned = value.replace(/[^\d,]/g, '')
+
+  // Ensure only one comma exists (decimal separator)
+  const commaIndex = cleaned.indexOf(',')
+  if (commaIndex !== -1) {
+    const beforeComma = cleaned.slice(0, commaIndex).replace(/,/g, '')
+    const afterComma = cleaned.slice(commaIndex + 1).replace(/,/g, '').slice(0, 2)
+    cleaned = beforeComma + ',' + afterComma
+  }
+
+  return cleaned
 }
 
 export default function PublicarCotaPage() {
@@ -162,9 +169,11 @@ export default function PublicarCotaPage() {
     }
 
     // Insert cota
+    const now = new Date().toISOString()
     const { data, error: insertError } = await supabase
       .from('cotas')
       .insert({
+        id: crypto.randomUUID(),
         seller_id: user.id,
         administrator,
         credit_amount: creditAmount,
@@ -175,6 +184,8 @@ export default function PublicarCotaPage() {
         entry_percentage: calculations.entryPercentage,
         monthly_rate: calculations.monthlyRate > 0 ? calculations.monthlyRate : null,
         status: 'AVAILABLE',
+        created_at: now,
+        updated_at: now,
       })
       .select()
       .single()
@@ -360,7 +371,7 @@ export default function PublicarCotaPage() {
                       placeholder="Ex: 200.000,00"
                       value={form.creditAmount}
                       onChange={(e) => {
-                        const formatted = formatCurrencyInput(e.target.value)
+                        const formatted = handleCurrencyInput(e.target.value)
                         setForm({ ...form, creditAmount: formatted })
                       }}
                       required
@@ -378,7 +389,7 @@ export default function PublicarCotaPage() {
                       placeholder="Ex: 50.000,00"
                       value={form.entryAmount}
                       onChange={(e) => {
-                        const formatted = formatCurrencyInput(e.target.value)
+                        const formatted = handleCurrencyInput(e.target.value)
                         setForm({ ...form, entryAmount: formatted })
                       }}
                       required
@@ -396,7 +407,7 @@ export default function PublicarCotaPage() {
                       placeholder="Ex: 150.000,00"
                       value={form.outstandingBalance}
                       onChange={(e) => {
-                        const formatted = formatCurrencyInput(e.target.value)
+                        const formatted = handleCurrencyInput(e.target.value)
                         setForm({ ...form, outstandingBalance: formatted })
                       }}
                       required
@@ -430,7 +441,7 @@ export default function PublicarCotaPage() {
                         placeholder="Ex: 1.200,00"
                         value={form.installmentValue}
                         onChange={(e) => {
-                          const formatted = formatCurrencyInput(e.target.value)
+                          const formatted = handleCurrencyInput(e.target.value)
                           setForm({ ...form, installmentValue: formatted })
                         }}
                         required

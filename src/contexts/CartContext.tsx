@@ -141,6 +141,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => {
     setItems([])
+    // Also clear localStorage immediately to prevent race conditions
+    try {
+      localStorage.removeItem(CART_STORAGE_KEY)
+    } catch (error) {
+      console.error('Error clearing cart from storage:', error)
+    }
   }, [])
 
   return (

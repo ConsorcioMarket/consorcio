@@ -33,24 +33,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const supabase = createClient()
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  // Create profile for users who don't have one (legacy users or failed signups)
+  const createMissingProfile = useCallback(async (authUser: User) => {
+    const now = new Date().toISOString()
+    // Use upsert to avoid duplicate key errors if profile is being created simultaneously
     const { data, error } = await supabase
       .from('profiles_pf')
-      .select('*')
-      .eq('id', userId)
+      .upsert({
+        id: authUser.id,
+        email: authUser.email || '',
+        full_name: authUser.user_metadata?.full_name || '',
+        cpf: authUser.user_metadata?.cpf || null,
+        phone: authUser.user_metadata?.phone || null,
+        role: 'USER',
+        created_at: now,
+        updated_at: now,
+      }, {
+        onConflict: 'id',
+        ignoreDuplicates: true
+      })
+      .select()
       .single()
 
     if (error) {
-      console.error('Error fetching profile:', error)
+      // If error is duplicate key, try to fetch the existing profile
+      if (error.code === '23505') {
+        const { data: existingProfile } = await supabase
+          .from('profiles_pf')
+          .select('*')
+          .eq('id', authUser.id)
+          .single()
+        return existingProfile as ProfilePF | null
+      }
+      console.error('Error creating missing profile:', error)
       return null
     }
 
     return data as ProfilePF
   }, [supabase])
 
+  const fetchProfile = useCallback(async (userId: string, authUser?: User) => {
+    // Use maybeSingle() instead of single() to avoid errors when no row exists
+    const { data, error } = await supabase
+      .from('profiles_pf')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Error fetching profile:', error)
+      return null
+    }
+
+    // If profile doesn't exist and we have the auth user, create it
+    if (!data && authUser) {
+      console.log('Profile not found, creating one for user:', userId)
+      return await createMissingProfile(authUser)
+    }
+
+    return data as ProfilePF | null
+  }, [supabase, createMissingProfile])
+
   const refreshProfile = useCallback(async () => {
     if (user) {
-      const profileData = await fetchProfile(user.id)
+      const profileData = await fetchProfile(user.id, user)
       setProfile(profileData)
     }
   }, [user, fetchProfile])
@@ -63,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          const profileData = await fetchProfile(session.user.id)
+          const profileData = await fetchProfile(session.user.id, session.user)
           setProfile(profileData)
         }
       } catch (error) {
@@ -81,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          const profileData = await fetchProfile(session.user.id)
+          const profileData = await fetchProfile(session.user.id, session.user)
           setProfile(profileData)
         } else {
           setProfile(null)
@@ -98,14 +144,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, userData: SignUpData) => {
     try {
+      // First, create the auth user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: userData.full_name,
-            cpf: userData.cpf,
-            phone: userData.phone,
+            cpf: userData.cpf || '',
+            phone: userData.phone || null,
           },
         },
       })
@@ -114,21 +161,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
       }
 
-      // Create profile after signup
+      // If user was created successfully, create the profile manually
+      // This replaces the database trigger which was causing 500 errors
+      // Use upsert to avoid race condition with onAuthStateChange
       if (data.user) {
+        const now = new Date().toISOString()
         const { error: profileError } = await supabase
           .from('profiles_pf')
-          .insert({
+          .upsert({
             id: data.user.id,
+            email: email,
             full_name: userData.full_name,
             cpf: userData.cpf || '',
             phone: userData.phone || null,
-            role: 'USER' as UserRole,
+            role: 'USER',
+            created_at: now,
+            updated_at: now,
+          }, {
+            onConflict: 'id',
+            ignoreDuplicates: true
           })
 
-        if (profileError) {
+        if (profileError && profileError.code !== '23505') {
           console.error('Error creating profile:', profileError)
-          return { error: new Error('Erro ao criar perfil. Por favor, tente novamente.') }
+          // Don't return error here - the user is already created in auth
+          // The profile can be created later or admin can fix it
         }
       }
 
@@ -152,10 +209,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setSession(null)
-    setProfile(null)
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('Error signing out:', error)
+      }
+    } catch (error) {
+      console.error('Error signing out:', error)
+    } finally {
+      // Always clear local state even if API call fails
+      setUser(null)
+      setSession(null)
+      setProfile(null)
+    }
   }
 
   const isAdmin = profile?.role === 'ADMIN'

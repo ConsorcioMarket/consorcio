@@ -2,7 +2,7 @@
 
 :root {
   /* ConsorcioMarket Color Palette */
-  --background: 0 0% 100%;
+  --background: 220 20% 97%;
   --foreground: 224 71% 4%;
 
   /* Cards */
@@ -11,14 +11,15 @@
   --popover: 0 0% 100%;
   --popover-foreground: 224 71% 4%;
 
-  /* Primary: Teal/Cyan - Main action buttons */
-  --primary: 168 76% 47%;
+  /* Primary: Teal/Green - Main action buttons */
+  --primary: 160 84% 39%;
   --primary-foreground: 0 0% 100%;
-  --primary-darker: 168 76% 38%;
+  --primary-darker: 160 84% 32%;
 
-  /* Secondary accent: Purple/Violet - Used in gradients */
-  --secondary: 263 70% 50%;
+  /* Secondary accent: Purple/Violet - Secondary buttons */
+  --secondary: 250 63% 48%;
   --secondary-foreground: 0 0% 100%;
+  --secondary-darker: 250 63% 38%;
 
   /* Muted elements */
   --muted: 220 14% 96%;
@@ -35,16 +36,18 @@
   /* Borders and inputs */
   --border: 220 13% 91%;
   --input: 220 13% 91%;
-  --ring: 168 76% 47%;
+  --ring: 160 84% 39%;
   --radius: 0.5rem;
 
-  /* Custom: Dark navy for header */
-  --navy: 228 29% 15%;
-  --navy-light: 228 24% 20%;
+  /* Custom: Dark navy for header and hero */
+  --navy: 225 33% 10%;
+  --navy-light: 228 30% 18%;
+  --navy-mid: 230 35% 25%;
 
-  /* Custom: Purple gradient colors */
-  --purple-start: 263 70% 50%;
-  --purple-end: 250 80% 60%;
+  /* Hero gradient: Dark navy to blue-purple */
+  --hero-start: 225 33% 10%;
+  --hero-mid: 235 40% 25%;
+  --hero-end: 250 50% 45%;
 }
 
 @theme inline {
@@ -59,6 +62,7 @@
   --color-primary-darker: hsl(var(--primary-darker));
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-darker: hsl(var(--secondary-darker));
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
   --color-accent: hsl(var(--accent));
@@ -88,9 +92,9 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Custom gradient for hero section - Purple gradient like ConsorcioMarket */
+/* Custom gradient for hero section - Dark navy to purple like ConsorcioMarket */
 .bg-gradient-hero {
-  background: linear-gradient(180deg, hsl(var(--purple-start)) 0%, hsl(var(--purple-end)) 100%);
+  background: linear-gradient(180deg, hsl(var(--hero-start)) 0%, hsl(var(--hero-mid)) 50%, hsl(var(--hero-end)) 100%);
 }
 
 /* Section backgrounds */

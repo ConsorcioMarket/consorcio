@@ -68,10 +68,10 @@ export function ListingTable({
     children: React.ReactNode
   }) => (
     <TableHead
-      className="cursor-pointer hover:bg-muted/50 transition-colors"
+      className="cursor-pointer hover:bg-primary/20 transition-colors text-center"
       onClick={() => onSort(field)}
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-center gap-1">
         {children}
         <ArrowUpDown
           className={`h-4 w-4 ${
@@ -106,26 +106,26 @@ export function ListingTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Administradora</TableHead>
-              <TableHead>Crédito</TableHead>
-              <TableHead>Saldo Devedor</TableHead>
-              <TableHead>Parcelas</TableHead>
-              <TableHead>Entrada</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="text-center">Administradora</TableHead>
+              <TableHead className="text-center">Crédito</TableHead>
+              <TableHead className="text-center">Saldo Devedor</TableHead>
+              <TableHead className="text-center">Parcelas</TableHead>
+              <TableHead className="text-center">Entrada</TableHead>
+              <TableHead className="text-center">Status</TableHead>
+              <TableHead className="text-center">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
-                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
+                <TableCell className="text-center"><Skeleton className="h-4 w-32 mx-auto" /></TableCell>
+                <TableCell className="text-center"><Skeleton className="h-4 w-24 mx-auto" /></TableCell>
+                <TableCell className="text-center"><Skeleton className="h-4 w-24 mx-auto" /></TableCell>
+                <TableCell className="text-center"><Skeleton className="h-4 w-16 mx-auto" /></TableCell>
+                <TableCell className="text-center"><Skeleton className="h-4 w-20 mx-auto" /></TableCell>
+                <TableCell className="text-center"><Skeleton className="h-5 w-20 rounded-full mx-auto" /></TableCell>
+                <TableCell className="text-center">
+                  <div className="flex justify-center gap-2">
                     <Skeleton className="h-8 w-8" />
                     <Skeleton className="h-8 w-24" />
                   </div>
@@ -162,8 +162,8 @@ export function ListingTable({
             <SortableHeader field="entry_amount">Entrada</SortableHeader>
             <SortableHeader field="entry_percentage">% Entrada</SortableHeader>
             <SortableHeader field="monthly_rate">Taxa Mensal</SortableHeader>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
+            <TableHead className="text-center">Status</TableHead>
+            <TableHead className="text-center">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -179,25 +179,25 @@ export function ListingTable({
                 className={`${isMine ? 'bg-muted/30' : ''} ${inCart ? 'bg-primary/5' : ''} cursor-pointer hover:bg-muted/50`}
                 onClick={() => onViewDetails(listing)}
               >
-                <TableCell className="font-medium">{listing.administrator}</TableCell>
-                <TableCell>{formatCurrency(listing.credit_amount)}</TableCell>
-                <TableCell>{formatCurrency(listing.outstanding_balance)}</TableCell>
-                <TableCell>{listing.n_installments}x</TableCell>
-                <TableCell>{formatCurrency(listing.installment_value)}</TableCell>
-                <TableCell>{formatCurrency(listing.entry_amount)}</TableCell>
-                <TableCell>{formatPercentage(listing.entry_percentage)}</TableCell>
-                <TableCell>
+                <TableCell className="font-medium text-center">{listing.administrator}</TableCell>
+                <TableCell className="text-center">{formatCurrency(listing.credit_amount)}</TableCell>
+                <TableCell className="text-center">{formatCurrency(listing.outstanding_balance)}</TableCell>
+                <TableCell className="text-center">{listing.n_installments}x</TableCell>
+                <TableCell className="text-center">{formatCurrency(listing.installment_value)}</TableCell>
+                <TableCell className="text-center">{formatCurrency(listing.entry_amount)}</TableCell>
+                <TableCell className="text-center">{formatPercentage(listing.entry_percentage)}</TableCell>
+                <TableCell className="text-center">
                   {listing.monthly_rate
                     ? formatPercentage(listing.monthly_rate, 4)
                     : '-'}
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                   <Badge variant={getStatusBadgeVariant(listing.status)}>
                     {getCotaStatusLabel(listing.status)}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
+                <TableCell className="text-center">
+                  <div className="flex items-center justify-center gap-2">
                     <Button
                       variant="ghost"
                       size="sm"

@@ -75,29 +75,31 @@ function ComposicaoCreditoContent() {
       }
 
       setLoadingCota(true)
-      const { data, error } = await supabase
-        .from('cotas')
-        .select('*')
-        .eq('id', cotaIdParam)
-        .single()
+      try {
+        const { data, error } = await supabase
+          .from('cotas')
+          .select('*')
+          .eq('id', cotaIdParam)
+          .single()
 
-      if (error || !data) {
-        console.error('Error fetching cota:', error)
-        addToast({
-          title: 'Cota não encontrada',
-          description: 'A cota solicitada não foi encontrada.',
-          variant: 'error',
-        })
+        if (error || !data) {
+          console.error('Error fetching cota:', error)
+          router.push('/')
+          return
+        }
+
+        setSingleCota(data)
+      } catch (err) {
+        console.error('Error fetching cota:', err)
         router.push('/')
-        return
+      } finally {
+        setLoadingCota(false)
       }
-
-      setSingleCota(data)
-      setLoadingCota(false)
     }
 
     fetchCota()
-  }, [cotaIdParam, supabase, router, addToast])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cotaIdParam])
 
   // Fetch user's companies
   useEffect(() => {
@@ -105,24 +107,30 @@ function ComposicaoCreditoContent() {
       if (!user) return
 
       setLoadingCompanies(true)
-      const { data, error } = await supabase
-        .from('profiles_pj')
-        .select('*')
-        .eq('pf_id', user.id)
-        .order('created_at', { ascending: false })
+      try {
+        const { data, error } = await supabase
+          .from('profiles_pj')
+          .select('*')
+          .eq('pf_id', user.id)
+          .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Error fetching companies:', error)
-      } else {
-        setCompanies(data || [])
+        if (error) {
+          console.error('Error fetching companies:', error)
+        } else {
+          setCompanies(data || [])
+        }
+      } catch (err) {
+        console.error('Error fetching companies:', err)
+      } finally {
+        setLoadingCompanies(false)
       }
-      setLoadingCompanies(false)
     }
 
     if (user) {
       fetchCompanies()
     }
-  }, [user, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
   const handleSubmit = async () => {
     if (!user || cotas.length === 0) return
@@ -156,13 +164,17 @@ function ComposicaoCreditoContent() {
 
     try {
       // Create proposals for each cota
+      const now = new Date().toISOString()
       const proposals = cotas.map(cota => ({
+        id: crypto.randomUUID(),
         cota_id: cota.id,
         buyer_pf_id: user.id,
         buyer_type: buyerType,
         buyer_entity_id: buyerEntityId,
         group_id: groupId,
         status: 'UNDER_REVIEW' as const,
+        created_at: now,
+        updated_at: now,
       }))
 
       const { data, error: insertError } = await supabase

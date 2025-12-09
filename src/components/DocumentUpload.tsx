@@ -139,15 +139,19 @@ export function DocumentUpload({
         documentData = data
       } else {
         // Create new document record
+        const now = new Date().toISOString()
         const { data, error: insertError } = await supabase
           .from('documents')
           .insert({
+            id: crypto.randomUUID(),
             owner_id: ownerId,
             owner_type: ownerType,
             document_type: documentType,
             file_url: fileUrl,
             file_name: file.name,
             status: 'UNDER_REVIEW' as DocumentStatus,
+            created_at: now,
+            updated_at: now,
           })
           .select()
           .single()

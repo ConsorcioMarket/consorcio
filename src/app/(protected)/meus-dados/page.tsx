@@ -94,6 +94,7 @@ export default function MeusDadosPage() {
     address_state: '',
     address_zip: '',
   })
+  const [pfEditing, setPfEditing] = useState(false)
   const [pfSaving, setPfSaving] = useState(false)
   const [pfSuccess, setPfSuccess] = useState(false)
   const [pfError, setPfError] = useState<string | null>(null)
@@ -151,13 +152,11 @@ export default function MeusDadosPage() {
   // Fetch companies
   useEffect(() => {
     const fetchCompanies = async () => {
-      if (!user) return
-
       setLoadingCompanies(true)
       const { data, error } = await supabase
         .from('profiles_pj')
         .select('*')
-        .eq('pf_id', user.id)
+        .eq('pf_id', user!.id)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -170,19 +169,20 @@ export default function MeusDadosPage() {
 
     if (user) {
       fetchCompanies()
+    } else if (!authLoading) {
+      // User is not logged in and auth is done loading
+      setLoadingCompanies(false)
     }
-  }, [user, supabase])
+  }, [user, authLoading, supabase])
 
   // Fetch PF documents
   useEffect(() => {
     const fetchDocuments = async () => {
-      if (!user) return
-
       setLoadingDocuments(true)
       const { data, error } = await supabase
         .from('documents')
         .select('*')
-        .eq('owner_id', user.id)
+        .eq('owner_id', user!.id)
         .eq('owner_type', 'PF')
         .order('created_at', { ascending: false })
 
@@ -196,8 +196,11 @@ export default function MeusDadosPage() {
 
     if (user) {
       fetchDocuments()
+    } else if (!authLoading) {
+      // User is not logged in and auth is done loading
+      setLoadingDocuments(false)
     }
-  }, [user, supabase])
+  }, [user, authLoading, supabase])
 
   const handlePfSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -207,7 +210,9 @@ export default function MeusDadosPage() {
     setPfError(null)
     setPfSuccess(false)
 
-    const { error } = await supabase
+    console.log('Updating profile for user.id:', user.id)
+
+    const { data, error } = await supabase
       .from('profiles_pf')
       .update({
         full_name: pfForm.full_name,
@@ -221,12 +226,19 @@ export default function MeusDadosPage() {
         address_zip: pfForm.address_zip.replace(/\D/g, '') || null,
       })
       .eq('id', user.id)
+      .select()
+
+    console.log('Update result - data:', data, 'error:', error)
 
     if (error) {
       setPfError('Erro ao salvar dados. Por favor, tente novamente.')
       console.error('Error updating profile:', error)
+    } else if (!data || data.length === 0) {
+      setPfError('Não foi possível atualizar o perfil. Tente fazer logout e login novamente.')
+      console.error('No rows updated - possible RLS issue')
     } else {
       setPfSuccess(true)
+      setPfEditing(false) // Exit edit mode after successful save
       await refreshProfile()
       setTimeout(() => setPfSuccess(false), 3000)
       addToast({
@@ -308,10 +320,16 @@ export default function MeusDadosPage() {
         .eq('id', editingPJ.id)
       error = result.error
     } else {
-      // Insert new
+      // Insert new - generate UUID for id and add timestamps
+      const now = new Date().toISOString()
       const result = await supabase
         .from('profiles_pj')
-        .insert(pjData)
+        .insert({
+          id: crypto.randomUUID(),
+          ...pjData,
+          created_at: now,
+          updated_at: now,
+        })
       error = result.error
     }
 
@@ -426,6 +444,8 @@ export default function MeusDadosPage() {
                           value={pfForm.full_name}
                           onChange={(e) => setPfForm({ ...pfForm, full_name: e.target.value })}
                           required
+                          disabled={!pfEditing}
+                          className={!pfEditing ? 'bg-muted' : ''}
                         />
                       </div>
 
@@ -449,6 +469,8 @@ export default function MeusDadosPage() {
                           placeholder="(00) 00000-0000"
                           value={formatPhone(pfForm.phone)}
                           onChange={(e) => setPfForm({ ...pfForm, phone: e.target.value })}
+                          disabled={!pfEditing}
+                          className={!pfEditing ? 'bg-muted' : ''}
                         />
                       </div>
 
@@ -459,6 +481,8 @@ export default function MeusDadosPage() {
                           placeholder="00000-000"
                           value={formatCEP(pfForm.address_zip)}
                           onChange={(e) => setPfForm({ ...pfForm, address_zip: e.target.value })}
+                          disabled={!pfEditing}
+                          className={!pfEditing ? 'bg-muted' : ''}
                         />
                       </div>
                     </div>
@@ -470,6 +494,8 @@ export default function MeusDadosPage() {
                           id="address_street"
                           value={pfForm.address_street}
                           onChange={(e) => setPfForm({ ...pfForm, address_street: e.target.value })}
+                          disabled={!pfEditing}
+                          className={!pfEditing ? 'bg-muted' : ''}
                         />
                       </div>
 
@@ -479,6 +505,8 @@ export default function MeusDadosPage() {
                           id="address_number"
                           value={pfForm.address_number}
                           onChange={(e) => setPfForm({ ...pfForm, address_number: e.target.value })}
+                          disabled={!pfEditing}
+                          className={!pfEditing ? 'bg-muted' : ''}
                         />
                       </div>
                     </div>
@@ -490,6 +518,8 @@ export default function MeusDadosPage() {
                           id="address_complement"
                           value={pfForm.address_complement}
                           onChange={(e) => setPfForm({ ...pfForm, address_complement: e.target.value })}
+                          disabled={!pfEditing}
+                          className={!pfEditing ? 'bg-muted' : ''}
                         />
                       </div>
 
@@ -499,6 +529,8 @@ export default function MeusDadosPage() {
                           id="address_neighborhood"
                           value={pfForm.address_neighborhood}
                           onChange={(e) => setPfForm({ ...pfForm, address_neighborhood: e.target.value })}
+                          disabled={!pfEditing}
+                          className={!pfEditing ? 'bg-muted' : ''}
                         />
                       </div>
                     </div>
@@ -510,6 +542,8 @@ export default function MeusDadosPage() {
                           id="address_city"
                           value={pfForm.address_city}
                           onChange={(e) => setPfForm({ ...pfForm, address_city: e.target.value })}
+                          disabled={!pfEditing}
+                          className={!pfEditing ? 'bg-muted' : ''}
                         />
                       </div>
 
@@ -517,9 +551,10 @@ export default function MeusDadosPage() {
                         <Label htmlFor="address_state">Estado</Label>
                         <select
                           id="address_state"
-                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          className={`flex h-9 w-full rounded-md border border-input px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${!pfEditing ? 'bg-muted' : 'bg-transparent'}`}
                           value={pfForm.address_state}
                           onChange={(e) => setPfForm({ ...pfForm, address_state: e.target.value })}
+                          disabled={!pfEditing}
                         >
                           <option value="">Selecione</option>
                           <option value="AC">Acre</option>
@@ -553,11 +588,48 @@ export default function MeusDadosPage() {
                       </div>
                     </div>
 
-                    <div className="flex justify-end pt-4">
-                      <Button type="submit" disabled={pfSaving} className="flex items-center gap-2">
-                        <Save className="h-4 w-4" />
-                        {pfSaving ? 'Salvando...' : 'Salvar alterações'}
-                      </Button>
+                    <div className="flex justify-end pt-4 gap-2">
+                      {pfEditing ? (
+                        <>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setPfEditing(false)
+                              // Reset form to original profile data
+                              if (profile) {
+                                setPfForm({
+                                  full_name: profile.full_name || '',
+                                  cpf: profile.cpf || '',
+                                  phone: profile.phone || '',
+                                  address_street: profile.address_street || '',
+                                  address_number: profile.address_number || '',
+                                  address_complement: profile.address_complement || '',
+                                  address_neighborhood: profile.address_neighborhood || '',
+                                  address_city: profile.address_city || '',
+                                  address_state: profile.address_state || '',
+                                  address_zip: profile.address_zip || '',
+                                })
+                              }
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button type="submit" disabled={pfSaving} className="flex items-center gap-2">
+                            <Save className="h-4 w-4" />
+                            {pfSaving ? 'Salvando...' : 'Salvar alterações'}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          onClick={() => setPfEditing(true)}
+                          className="flex items-center gap-2"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Editar
+                        </Button>
+                      )}
                     </div>
                   </form>
                 </TabsContent>
