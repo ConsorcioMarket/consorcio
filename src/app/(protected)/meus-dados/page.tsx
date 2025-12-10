@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, Building2, FileText, Save, Plus, Pencil, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { DocumentList } from '@/components/DocumentUpload'
 import { useToast } from '@/components/ui/toast'
-import type { ProfilePF, ProfilePJ, PJStatus, Document, DocumentType } from '@/types/database'
+import type { ProfilePJ, PJStatus, Document, DocumentType } from '@/types/database'
 
 // CPF mask helper
 function formatCPF(value: string): string {
@@ -124,6 +124,9 @@ export default function MeusDadosPage() {
   const [pfDocuments, setPfDocuments] = useState<Document[]>([])
   const [loadingDocuments, setLoadingDocuments] = useState(true)
 
+  // Track if form has been initialized from profile
+  const pfFormInitialized = useRef(false)
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
@@ -131,9 +134,11 @@ export default function MeusDadosPage() {
     }
   }, [user, authLoading, router])
 
-  // Load profile data into form
+  // Load profile data into form - only on initial load
   useEffect(() => {
-    if (profile) {
+    if (profile && !pfFormInitialized.current) {
+      pfFormInitialized.current = true
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial form population from context
       setPfForm({
         full_name: profile.full_name || '',
         cpf: profile.cpf || '',
@@ -171,6 +176,7 @@ export default function MeusDadosPage() {
       fetchCompanies()
     } else if (!authLoading) {
       // User is not logged in and auth is done loading
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Cleanup state when user logs out
       setLoadingCompanies(false)
     }
   }, [user, authLoading, supabase])
@@ -198,6 +204,7 @@ export default function MeusDadosPage() {
       fetchDocuments()
     } else if (!authLoading) {
       // User is not logged in and auth is done loading
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Cleanup state when user logs out
       setLoadingDocuments(false)
     }
   }, [user, authLoading, supabase])

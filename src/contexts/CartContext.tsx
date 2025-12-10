@@ -56,37 +56,35 @@ function calculateTotals(items: CartItem[]): CartTotals {
   }
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([])
-  const [isOpen, setIsOpen] = useState(false)
-  const [isInitialized, setIsInitialized] = useState(false)
-
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(CART_STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed)) {
-          setItems(parsed)
-        }
+// Helper to load cart from localStorage
+function loadCartFromStorage(): CartItem[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const stored = localStorage.getItem(CART_STORAGE_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed)) {
+        return parsed
       }
-    } catch (error) {
-      console.error('Error loading cart from storage:', error)
     }
-    setIsInitialized(true)
-  }, [])
+  } catch (error) {
+    console.error('Error loading cart from storage:', error)
+  }
+  return []
+}
+
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [items, setItems] = useState<CartItem[]>(loadCartFromStorage)
+  const [isOpen, setIsOpen] = useState(false)
 
   // Save cart to localStorage when items change
   useEffect(() => {
-    if (isInitialized) {
-      try {
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
-      } catch (error) {
-        console.error('Error saving cart to storage:', error)
-      }
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
+    } catch (error) {
+      console.error('Error saving cart to storage:', error)
     }
-  }, [items, isInitialized])
+  }, [items])
 
   const totals = calculateTotals(items)
 

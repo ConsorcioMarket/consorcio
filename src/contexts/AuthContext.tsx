@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
-import type { ProfilePF, UserRole } from '@/types/database'
+import type { ProfilePF } from '@/types/database'
 
 interface AuthContextType {
   user: User | null
@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         cpf: authUser.user_metadata?.cpf || null,
         phone: authUser.user_metadata?.phone || null,
         role: 'USER',
+        status: 'INCOMPLETE',
         created_at: now,
         updated_at: now,
       }, {
@@ -175,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             cpf: userData.cpf || '',
             phone: userData.phone || null,
             role: 'USER',
+            status: 'INCOMPLETE',
             created_at: now,
             updated_at: now,
           }, {

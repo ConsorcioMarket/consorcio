@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Calculator, CheckCircle } from 'lucide-react'
@@ -59,7 +59,6 @@ export default function PublicarCotaPage() {
   const { user, loading: authLoading } = useAuth()
   const { addToast } = useToast()
   const [success, setSuccess] = useState(false)
-  const [newCotaId, setNewCotaId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -76,21 +75,8 @@ export default function PublicarCotaPage() {
     entryAmount: '',
   })
 
-  // Calculated values
-  const [calculations, setCalculations] = useState({
-    entryPercentage: 0,
-    monthlyRate: 0,
-  })
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login?returnUrl=/publicar-cota')
-    }
-  }, [user, authLoading, router])
-
-  // Recalculate when values change
-  useEffect(() => {
+  // Calculated values (derived from form state)
+  const calculations = useMemo(() => {
     const creditAmount = parseCurrency(form.creditAmount)
     const entryAmount = parseCurrency(form.entryAmount)
     const outstandingBalance = parseCurrency(form.outstandingBalance)
@@ -121,11 +107,15 @@ export default function PublicarCotaPage() {
       }
     }
 
-    setCalculations({
-      entryPercentage,
-      monthlyRate,
-    })
+    return { entryPercentage, monthlyRate }
   }, [form.creditAmount, form.entryAmount, form.outstandingBalance, form.installmentValue, form.nInstallments])
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login?returnUrl=/publicar-cota')
+    }
+  }, [user, authLoading, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -170,7 +160,7 @@ export default function PublicarCotaPage() {
 
     // Insert cota
     const now = new Date().toISOString()
-    const { data, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from('cotas')
       .insert({
         id: crypto.randomUUID(),
@@ -197,7 +187,6 @@ export default function PublicarCotaPage() {
       return
     }
 
-    setNewCotaId(data.id)
     setSuccess(true)
     setSaving(false)
     addToast({
@@ -260,7 +249,6 @@ export default function PublicarCotaPage() {
                     className="w-full"
                     onClick={() => {
                       setSuccess(false)
-                      setNewCotaId(null)
                       setForm({
                         administrator: '',
                         otherAdministrator: '',

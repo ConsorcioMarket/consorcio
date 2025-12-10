@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Eye, Pencil, Trash2, AlertCircle, Users, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, Eye, Pencil, Trash2, AlertCircle, Users, Clock, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'

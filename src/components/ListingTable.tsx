@@ -18,6 +18,56 @@ import { useToast } from '@/components/ui/toast'
 import type { Cota } from '@/types/database'
 import type { SortField, SortDirection } from '@/hooks/useListings'
 
+interface SortableHeaderProps {
+  field: SortField
+  children: React.ReactNode
+  sortField: SortField
+  sortDirection: SortDirection
+  onSort: (field: SortField) => void
+}
+
+function SortableHeader({
+  field,
+  children,
+  sortField,
+  sortDirection,
+  onSort,
+}: SortableHeaderProps) {
+  return (
+    <TableHead
+      className="cursor-pointer hover:bg-primary/20 transition-all duration-200 text-center"
+      onClick={() => onSort(field)}
+    >
+      <div className="flex items-center justify-center gap-1">
+        {children}
+        <ArrowUpDown
+          className={`h-4 w-4 transition-all duration-200 ${
+            sortField === field ? 'text-primary scale-110' : 'text-muted-foreground'
+          }`}
+        />
+        {sortField === field && (
+          <span className="text-xs text-muted-foreground animate-fade-in-scale">
+            {sortDirection === 'asc' ? '↑' : '↓'}
+          </span>
+        )}
+      </div>
+    </TableHead>
+  )
+}
+
+function getStatusBadgeVariant(status: string) {
+  switch (status) {
+    case 'AVAILABLE':
+      return 'success'
+    case 'RESERVED':
+      return 'warning'
+    case 'SOLD':
+      return 'secondary'
+    default:
+      return 'outline'
+  }
+}
+
 interface ListingTableProps {
   listings: Cota[]
   loading: boolean
@@ -60,45 +110,16 @@ export function ListingTable({
     }
   }
 
-  const SortableHeader = ({
-    field,
-    children,
-  }: {
-    field: SortField
-    children: React.ReactNode
-  }) => (
-    <TableHead
-      className="cursor-pointer hover:bg-primary/20 transition-all duration-200 text-center"
-      onClick={() => onSort(field)}
+  const renderSortableHeader = (field: SortField, children: React.ReactNode) => (
+    <SortableHeader
+      field={field}
+      sortField={sortField}
+      sortDirection={sortDirection}
+      onSort={onSort}
     >
-      <div className="flex items-center justify-center gap-1">
-        {children}
-        <ArrowUpDown
-          className={`h-4 w-4 transition-all duration-200 ${
-            sortField === field ? 'text-primary scale-110' : 'text-muted-foreground'
-          }`}
-        />
-        {sortField === field && (
-          <span className="text-xs text-muted-foreground animate-fade-in-scale">
-            {sortDirection === 'asc' ? '↑' : '↓'}
-          </span>
-        )}
-      </div>
-    </TableHead>
+      {children}
+    </SortableHeader>
   )
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'AVAILABLE':
-        return 'success'
-      case 'RESERVED':
-        return 'warning'
-      case 'SOLD':
-        return 'secondary'
-      default:
-        return 'outline'
-    }
-  }
 
   if (loading) {
     return (
@@ -154,14 +175,14 @@ export function ListingTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <SortableHeader field="administrator">Administradora</SortableHeader>
-            <SortableHeader field="credit_amount">Crédito</SortableHeader>
-            <SortableHeader field="outstanding_balance">Saldo Devedor</SortableHeader>
-            <SortableHeader field="n_installments">Parcelas</SortableHeader>
-            <SortableHeader field="installment_value">Valor Parcela</SortableHeader>
-            <SortableHeader field="entry_amount">Entrada</SortableHeader>
-            <SortableHeader field="entry_percentage">% Entrada</SortableHeader>
-            <SortableHeader field="monthly_rate">Taxa Mensal</SortableHeader>
+            {renderSortableHeader('administrator', 'Administradora')}
+            {renderSortableHeader('credit_amount', 'Crédito')}
+            {renderSortableHeader('outstanding_balance', 'Saldo Devedor')}
+            {renderSortableHeader('n_installments', 'Parcelas')}
+            {renderSortableHeader('installment_value', 'Valor Parcela')}
+            {renderSortableHeader('entry_amount', 'Entrada')}
+            {renderSortableHeader('entry_percentage', '% Entrada')}
+            {renderSortableHeader('monthly_rate', 'Taxa Mensal')}
             <TableHead className="text-center">Status</TableHead>
             <TableHead className="text-center">Ações</TableHead>
           </TableRow>

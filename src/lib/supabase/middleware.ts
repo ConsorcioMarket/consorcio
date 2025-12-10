@@ -38,7 +38,7 @@ export async function updateSession(request: NextRequest) {
 
   // Protected routes
   const protectedRoutes = ['/meus-dados', '/minhas-cotas', '/minhas-propostas', '/publicar-cota', '/composicao-credito']
-  const adminRoutes = ['/admin']
+  // const adminRoutes = ['/admin'] // TODO: implement admin route protection
   const authRoutes = ['/login', '/cadastro', '/recuperar-senha']
 
   const pathname = request.nextUrl.pathname

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Phone } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,10 +27,20 @@ function Logo() {
   )
 }
 
+// Helper function to format phone number as (XX) XXXXX-XXXX
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+  if (digits.length === 0) return ''
+  if (digits.length <= 2) return `(${digits}`
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+}
+
 export default function CadastroPage() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
+    phone: '',
     password: '',
   })
   const [showPassword, setShowPassword] = useState(false)
@@ -51,6 +61,11 @@ export default function CadastroPage() {
     }
     if (!formData.email.includes('@')) {
       return 'Por favor, informe um email válido.'
+    }
+    // Validate phone - must have 10 or 11 digits (with or without 9 prefix)
+    const phoneDigits = formData.phone.replace(/\D/g, '')
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      return 'Por favor, informe um telefone válido com DDD.'
     }
     if (formData.password.length < 6) {
       return 'A senha deve ter pelo menos 6 caracteres.'
@@ -74,8 +89,11 @@ export default function CadastroPage() {
     setLoading(true)
 
     try {
+      // Store phone as digits only in the database
+      const phoneDigits = formData.phone.replace(/\D/g, '')
       const { error } = await signUp(formData.email, formData.password, {
         full_name: formData.fullName,
+        phone: phoneDigits,
       })
 
       if (error) {
@@ -164,6 +182,25 @@ export default function CadastroPage() {
                 disabled={loading}
                 className="h-11"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                Telefone <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="(11) 99999-9999"
+                  value={formData.phone}
+                  onChange={(e) => handleChange('phone', formatPhone(e.target.value))}
+                  required
+                  disabled={loading}
+                  className="h-11 pl-11"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

@@ -20,6 +20,13 @@ enum UserRole {
   ADMIN
 }
 
+enum PFStatus {
+  INCOMPLETE
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
 enum PJStatus {
   INCOMPLETE
   PENDING_REVIEW
@@ -86,6 +93,7 @@ model ProfilePF {
   cpf                  String?
   phone                String?
   role                 UserRole @default(USER)
+  status               PFStatus @default(INCOMPLETE)
   addressStreet        String?  @map("address_street")
   addressNumber        String?  @map("address_number")
   addressComplement    String?  @map("address_complement")

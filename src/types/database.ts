@@ -8,6 +8,7 @@ export type Json =
 
 // Enums
 export type UserRole = 'USER' | 'ADMIN'
+export type PFStatus = 'INCOMPLETE' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
 export type PJStatus = 'INCOMPLETE' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
 export type CotaStatus = 'AVAILABLE' | 'RESERVED' | 'SOLD' | 'REMOVED'
 export type ProposalStatus =
@@ -44,6 +45,7 @@ export interface Database {
           cpf: string | null
           phone: string | null
           role: UserRole
+          status: PFStatus
           address_street: string | null
           address_number: string | null
           address_complement: string | null
@@ -61,6 +63,7 @@ export interface Database {
           cpf?: string | null
           phone?: string | null
           role?: UserRole
+          status?: PFStatus
           address_street?: string | null
           address_number?: string | null
           address_complement?: string | null
@@ -78,6 +81,7 @@ export interface Database {
           cpf?: string
           phone?: string | null
           role?: UserRole
+          status?: PFStatus
           address_street?: string | null
           address_number?: string | null
           address_complement?: string | null
@@ -351,6 +355,7 @@ export interface Database {
     }
     Enums: {
       user_role: UserRole
+      pf_status: PFStatus
       pj_status: PJStatus
       cota_status: CotaStatus
       proposal_status: ProposalStatus

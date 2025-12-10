@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Calculator, CheckCircle, AlertTriangle } from 'lucide-react'
@@ -72,11 +72,40 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
     entryAmount: '',
   })
 
-  // Calculated values
-  const [calculations, setCalculations] = useState({
-    entryPercentage: 0,
-    monthlyRate: 0,
-  })
+  // Calculated values (derived from form state)
+  const calculations = useMemo(() => {
+    const creditAmount = parseCurrency(form.creditAmount)
+    const entryAmount = parseCurrency(form.entryAmount)
+    const outstandingBalance = parseCurrency(form.outstandingBalance)
+    const installmentValue = parseCurrency(form.installmentValue)
+    const nInstallments = parseInt(form.nInstallments) || 0
+
+    // Calculate entry percentage
+    const entryPercentage = calculateEntryPercentage(entryAmount, creditAmount)
+
+    // Calculate monthly rate (if we have the required values)
+    let monthlyRate = 0
+    if (nInstallments > 0 && installmentValue > 0 && outstandingBalance > 0) {
+      try {
+        monthlyRate = calculateMonthlyRate(
+          nInstallments,
+          -installmentValue,
+          outstandingBalance,
+          0,
+          0,
+          0.01
+        )
+        // Handle negative or invalid rates
+        if (monthlyRate < 0 || !isFinite(monthlyRate)) {
+          monthlyRate = 0
+        }
+      } catch {
+        monthlyRate = 0
+      }
+    }
+
+    return { entryPercentage, monthlyRate }
+  }, [form.creditAmount, form.entryAmount, form.outstandingBalance, form.installmentValue, form.nInstallments])
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -140,44 +169,6 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
       fetchCota()
     }
   }, [user, id, supabase])
-
-  // Recalculate when values change
-  useEffect(() => {
-    const creditAmount = parseCurrency(form.creditAmount)
-    const entryAmount = parseCurrency(form.entryAmount)
-    const outstandingBalance = parseCurrency(form.outstandingBalance)
-    const installmentValue = parseCurrency(form.installmentValue)
-    const nInstallments = parseInt(form.nInstallments) || 0
-
-    // Calculate entry percentage
-    const entryPercentage = calculateEntryPercentage(entryAmount, creditAmount)
-
-    // Calculate monthly rate (if we have the required values)
-    let monthlyRate = 0
-    if (nInstallments > 0 && installmentValue > 0 && outstandingBalance > 0) {
-      try {
-        monthlyRate = calculateMonthlyRate(
-          nInstallments,
-          -installmentValue,
-          outstandingBalance,
-          0,
-          0,
-          0.01
-        )
-        // Handle negative or invalid rates
-        if (monthlyRate < 0 || !isFinite(monthlyRate)) {
-          monthlyRate = 0
-        }
-      } catch {
-        monthlyRate = 0
-      }
-    }
-
-    setCalculations({
-      entryPercentage,
-      monthlyRate,
-    })
-  }, [form.creditAmount, form.entryAmount, form.outstandingBalance, form.installmentValue, form.nInstallments])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

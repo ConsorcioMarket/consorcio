@@ -177,7 +177,7 @@ function ComposicaoCreditoContent() {
         updated_at: now,
       }))
 
-      const { data, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('proposals')
         .insert(proposals)
         .select()

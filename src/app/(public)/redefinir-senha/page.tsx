@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react'
@@ -21,19 +21,53 @@ export default function RedefinirSenhaPage() {
   const [isValidSession, setIsValidSession] = useState(false)
   const [checking, setChecking] = useState(true)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        setIsValidSession(true)
+  const handleAuthStateChange = useCallback(async () => {
+    // Set up auth state listener for PASSWORD_RECOVERY event
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth event:', event)
+
+        if (event === 'PASSWORD_RECOVERY') {
+          // User clicked the recovery link - they can now update password
+          setIsValidSession(true)
+          setChecking(false)
+        } else if (event === 'SIGNED_IN' && session) {
+          // Check if this is from a recovery flow
+          setIsValidSession(true)
+          setChecking(false)
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          setIsValidSession(true)
+          setChecking(false)
+        }
       }
+    )
+
+    // Also check for existing session
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      setIsValidSession(true)
       setChecking(false)
+    } else {
+      // Give Supabase time to process the URL hash (contains the recovery token)
+      // The hash is automatically processed by Supabase client on page load
+      setTimeout(() => {
+        if (!isValidSession) {
+          setChecking(false)
+        }
+      }, 2000)
     }
-    checkSession()
-  }, [supabase])
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [supabase, isValidSession])
+
+  useEffect(() => {
+    handleAuthStateChange()
+  }, [handleAuthStateChange])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -135,8 +135,8 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   )
 }
 
-// Helper function for easy toast creation
-export function toast(options: Omit<Toast, 'id'>) {
-  // This will be populated by the hook
-  console.warn('toast() called outside of ToastProvider context')
+// Helper function for easy toast creation (placeholder - use useToast hook instead)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function toast(_options: Omit<Toast, 'id'>) {
+  console.warn('toast() called outside of ToastProvider context. Use the useToast hook instead.')
 }
