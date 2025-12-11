@@ -164,7 +164,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // If user was created successfully, create the profile manually
       // This replaces the database trigger which was causing 500 errors
-      // Use upsert to avoid race condition with onAuthStateChange
+      // Use upsert to handle race condition with onAuthStateChange
+      // Note: ignoreDuplicates was removed because it prevented phone from being saved
+      // if profile was already created by a database trigger
       if (data.user) {
         const now = new Date().toISOString()
         const { error: profileError } = await supabase
@@ -180,8 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             created_at: now,
             updated_at: now,
           }, {
-            onConflict: 'id',
-            ignoreDuplicates: true
+            onConflict: 'id'
           })
 
         if (profileError && profileError.code !== '23505') {

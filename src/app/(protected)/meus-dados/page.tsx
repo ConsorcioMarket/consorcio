@@ -217,6 +217,14 @@ export default function MeusDadosPage() {
     setPfError(null)
     setPfSuccess(false)
 
+    // Validate required phone field
+    const phoneDigits = pfForm.phone.replace(/\D/g, '')
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      setPfError('Por favor, informe um telefone válido com DDD (10 ou 11 dígitos).')
+      setPfSaving(false)
+      return
+    }
+
     console.log('Updating profile for user.id:', user.id)
 
     const { data, error } = await supabase
@@ -445,7 +453,7 @@ export default function MeusDadosPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="full_name">Nome completo *</Label>
+                        <Label htmlFor="full_name">Nome completo<span className="text-red-500">*</span></Label>
                         <Input
                           id="full_name"
                           value={pfForm.full_name}
@@ -470,13 +478,14 @@ export default function MeusDadosPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Telefone</Label>
+                        <Label htmlFor="phone">Telefone <span className="text-red-500">*</span></Label>
                         <Input
                           id="phone"
                           placeholder="(00) 00000-0000"
                           value={formatPhone(pfForm.phone)}
                           onChange={(e) => setPfForm({ ...pfForm, phone: e.target.value })}
                           disabled={!pfEditing}
+                          required
                           className={!pfEditing ? 'bg-muted' : ''}
                         />
                       </div>
