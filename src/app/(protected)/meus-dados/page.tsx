@@ -231,7 +231,7 @@ export default function MeusDadosPage() {
       .from('profiles_pf')
       .update({
         full_name: pfForm.full_name,
-        phone: pfForm.phone.replace(/\D/g, '') || null,
+        phone: pfForm.phone.replace(/\D/g, ''),
         address_street: pfForm.address_street || null,
         address_number: pfForm.address_number || null,
         address_complement: pfForm.address_complement || null,

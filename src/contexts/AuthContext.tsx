@@ -20,7 +20,7 @@ interface AuthContextType {
 interface SignUpData {
   full_name: string
   cpf?: string
-  phone?: string
+  phone: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: authUser.email || '',
         full_name: authUser.user_metadata?.full_name || '',
         cpf: authUser.user_metadata?.cpf || null,
-        phone: authUser.user_metadata?.phone || null,
+        phone: authUser.user_metadata?.phone || '',
         role: 'USER',
         status: 'INCOMPLETE',
         created_at: now,
@@ -153,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             full_name: userData.full_name,
             cpf: userData.cpf || '',
-            phone: userData.phone || null,
+            phone: userData.phone,
           },
         },
       })
@@ -176,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: email,
             full_name: userData.full_name,
             cpf: userData.cpf || '',
-            phone: userData.phone || null,
+            phone: userData.phone,
             role: 'USER',
             status: 'INCOMPLETE',
             created_at: now,

@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Calculator, CheckCircle, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Calculator, CheckCircle, AlertTriangle, FileText } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { calculateEntryPercentage, calculateMonthlyRate, formatCurrency } from '@/lib/utils'
-import type { Cota } from '@/types/database'
+import { DocumentUpload } from '@/components/DocumentUpload'
+import type { Cota, Document } from '@/types/database'
 
 // Common administrators list
 const ADMINISTRATORS = [
@@ -58,6 +59,8 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [notAllowed, setNotAllowed] = useState(false)
+  const [statementDocument, setStatementDocument] = useState<Document | null>(null)
+  const [documentError, setDocumentError] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -147,6 +150,19 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
       }
 
       setCota(data)
+
+      // Fetch cota statement document if exists
+      const { data: docData } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('owner_id', id)
+        .eq('owner_type', 'COTA')
+        .eq('document_type', 'COTA_STATEMENT')
+        .single()
+
+      if (docData) {
+        setStatementDocument(docData)
+      }
 
       // Check if administrator is in the list or custom
       const isKnownAdmin = ADMINISTRATORS.includes(data.administrator)
@@ -566,6 +582,39 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
                       </p>
                     </div>
                   )}
+
+                  {/* Statement Document Upload */}
+                  <div className="border-t pt-6 mt-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <FileText className="h-5 w-5 text-primary" />
+                      <h3 className="font-semibold">Extrato da Administradora</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Envie o extrato atualizado da sua cota emitido pela administradora. Este documento comprova os valores informados.
+                    </p>
+
+                    {documentError && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
+                        {documentError}
+                      </div>
+                    )}
+
+                    {cota && (
+                      <DocumentUpload
+                        ownerId={cota.id}
+                        ownerType="COTA"
+                        documentType="COTA_STATEMENT"
+                        existingDocument={statementDocument}
+                        onUploadComplete={(doc) => {
+                          setStatementDocument(doc)
+                          setDocumentError(null)
+                        }}
+                        onError={(err) => setDocumentError(err)}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        maxSizeMB={10}
+                      />
+                    )}
+                  </div>
 
                   {/* Submit */}
                   <div className="flex gap-4 pt-4">

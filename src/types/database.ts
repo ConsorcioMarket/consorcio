@@ -43,7 +43,7 @@ export interface Database {
           email: string
           full_name: string
           cpf: string | null
-          phone: string | null
+          phone: string
           role: UserRole
           status: PFStatus
           address_street: string | null
@@ -61,7 +61,7 @@ export interface Database {
           email?: string
           full_name: string
           cpf?: string | null
-          phone?: string | null
+          phone: string
           role?: UserRole
           status?: PFStatus
           address_street?: string | null
@@ -79,7 +79,7 @@ export interface Database {
           email?: string
           full_name?: string
           cpf?: string
-          phone?: string | null
+          phone?: string
           role?: UserRole
           status?: PFStatus
           address_street?: string | null

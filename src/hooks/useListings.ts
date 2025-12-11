@@ -48,6 +48,8 @@ const defaultFilters: ListingFilters = {
   rateMax: null,
 }
 
+const PAGE_SIZE = 20
+
 export function useListings() {
   const [listings, setListings] = useState<Cota[]>([])
   const [loading, setLoading] = useState(true)
@@ -56,77 +58,88 @@ export function useListings() {
   const [filters, setFilters] = useState<ListingFilters>(defaultFilters)
   const [sortField, setSortField] = useState<SortField>('credit_amount')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
 
   const supabase = createClient()
+
+  // Helper to build filtered query
+  const buildFilteredQuery = useCallback(() => {
+    let query = supabase
+      .from('cotas')
+      .select('*', { count: 'exact' })
+      .in('status', ['AVAILABLE', 'RESERVED'] as CotaStatus[])
+
+    if (filters.administrator) {
+      query = query.eq('administrator', filters.administrator)
+    }
+    if (filters.creditMin !== null) {
+      query = query.gte('credit_amount', filters.creditMin)
+    }
+    if (filters.creditMax !== null) {
+      query = query.lte('credit_amount', filters.creditMax)
+    }
+    if (filters.balanceMin !== null) {
+      query = query.gte('outstanding_balance', filters.balanceMin)
+    }
+    if (filters.balanceMax !== null) {
+      query = query.lte('outstanding_balance', filters.balanceMax)
+    }
+    if (filters.entryMin !== null) {
+      query = query.gte('entry_amount', filters.entryMin)
+    }
+    if (filters.entryMax !== null) {
+      query = query.lte('entry_amount', filters.entryMax)
+    }
+    if (filters.entryPercentMin !== null) {
+      query = query.gte('entry_percentage', filters.entryPercentMin)
+    }
+    if (filters.entryPercentMax !== null) {
+      query = query.lte('entry_percentage', filters.entryPercentMax)
+    }
+    if (filters.installmentsMin !== null) {
+      query = query.gte('n_installments', filters.installmentsMin)
+    }
+    if (filters.installmentsMax !== null) {
+      query = query.lte('n_installments', filters.installmentsMax)
+    }
+    if (filters.rateMin !== null) {
+      query = query.gte('monthly_rate', filters.rateMin)
+    }
+    if (filters.rateMax !== null) {
+      query = query.lte('monthly_rate', filters.rateMax)
+    }
+
+    return query
+  }, [supabase, filters])
 
   const fetchListings = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
-      let query = supabase
-        .from('cotas')
-        .select('*')
-        .in('status', ['AVAILABLE', 'RESERVED'] as CotaStatus[])
+      const from = (page - 1) * PAGE_SIZE
+      const to = from + PAGE_SIZE - 1
 
-      // Apply filters
-      if (filters.administrator) {
-        query = query.eq('administrator', filters.administrator)
-      }
-      if (filters.creditMin !== null) {
-        query = query.gte('credit_amount', filters.creditMin)
-      }
-      if (filters.creditMax !== null) {
-        query = query.lte('credit_amount', filters.creditMax)
-      }
-      if (filters.balanceMin !== null) {
-        query = query.gte('outstanding_balance', filters.balanceMin)
-      }
-      if (filters.balanceMax !== null) {
-        query = query.lte('outstanding_balance', filters.balanceMax)
-      }
-      if (filters.entryMin !== null) {
-        query = query.gte('entry_amount', filters.entryMin)
-      }
-      if (filters.entryMax !== null) {
-        query = query.lte('entry_amount', filters.entryMax)
-      }
-      if (filters.entryPercentMin !== null) {
-        query = query.gte('entry_percentage', filters.entryPercentMin)
-      }
-      if (filters.entryPercentMax !== null) {
-        query = query.lte('entry_percentage', filters.entryPercentMax)
-      }
-      if (filters.installmentsMin !== null) {
-        query = query.gte('n_installments', filters.installmentsMin)
-      }
-      if (filters.installmentsMax !== null) {
-        query = query.lte('n_installments', filters.installmentsMax)
-      }
-      if (filters.rateMin !== null) {
-        query = query.gte('monthly_rate', filters.rateMin)
-      }
-      if (filters.rateMax !== null) {
-        query = query.lte('monthly_rate', filters.rateMax)
-      }
+      const query = buildFilteredQuery()
+        .order(sortField, { ascending: sortDirection === 'asc' })
+        .range(from, to)
 
-      // Apply sorting
-      query = query.order(sortField, { ascending: sortDirection === 'asc' })
-
-      const { data, error: queryError } = await query
+      const { data: listingsData, error: queryError, count } = await query
 
       if (queryError) {
         throw queryError
       }
 
-      setListings(data || [])
+      setListings(listingsData || [])
+      setTotalCount(count || 0)
     } catch (err) {
       console.error('Error fetching listings:', err)
       setError('Erro ao carregar cotas. Por favor, tente novamente.')
     } finally {
       setLoading(false)
     }
-  }, [supabase, filters, sortField, sortDirection])
+  }, [buildFilteredQuery, sortField, sortDirection, page])
 
   const fetchAdministrators = useCallback(async () => {
     try {
@@ -159,11 +172,21 @@ export function useListings() {
   }
 
   const applyFilters = () => {
+    setPage(1) // Reset to first page when applying filters
     fetchListings()
   }
 
   const clearFilters = () => {
     setFilters(defaultFilters)
+    setPage(1)
+  }
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+
+  const goToPage = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage)
+    }
   }
 
   return {
@@ -179,5 +202,11 @@ export function useListings() {
     applyFilters,
     clearFilters,
     refetch: fetchListings,
+    // Pagination
+    page,
+    totalPages,
+    totalCount,
+    goToPage,
+    pageSize: PAGE_SIZE,
   }
 }

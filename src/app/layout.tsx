@@ -6,6 +6,7 @@ import { CartProvider } from '@/contexts/CartContext'
 import { Header } from '@/components/Header'
 import { CartDrawer } from '@/components/CartDrawer'
 import { ToastProvider } from '@/components/ui/toast'
+import { AdminStatusBar } from '@/components/AdminStatusBar'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -38,14 +39,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="pt-BR" translate="no" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
         <AuthProvider>
           <CartProvider>
             <ToastProvider>
               <Header />
               <CartDrawer />
-              <main>{children}</main>
+              <main className="pb-14">{children}</main>
+              <AdminStatusBar />
             </ToastProvider>
           </CartProvider>
         </AuthProvider>

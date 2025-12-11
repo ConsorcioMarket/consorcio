@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FileText, Eye, AlertCircle, Clock, CheckCircle, XCircle, ArrowRight, FileCheck, CreditCard } from 'lucide-react'
+import { FileText, Eye, AlertCircle, Clock, CheckCircle, XCircle, ArrowRight, FileCheck, CreditCard, Layers } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -61,8 +61,12 @@ function SummaryCards({ proposals }: { proposals: ProposalWithCota[] }) {
   const completed = proposals.filter(p => p.status === 'COMPLETED').length
   const rejected = proposals.filter(p => p.status === 'REJECTED').length
 
+  // Count unique groups (composições)
+  const uniqueGroups = new Set(proposals.filter(p => p.group_id).map(p => p.group_id))
+  const groupCount = uniqueGroups.size
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 animate-stagger">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8 animate-stagger">
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
         <div className="flex items-center gap-2 text-yellow-700 mb-1">
           <Clock className="h-4 w-4" />
@@ -91,6 +95,15 @@ function SummaryCards({ proposals }: { proposals: ProposalWithCota[] }) {
         </div>
         <p className="text-2xl font-bold text-red-800 tabular-nums">{rejected}</p>
       </div>
+      {groupCount > 0 && (
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+          <div className="flex items-center gap-2 text-purple-700 mb-1">
+            <Layers className="h-4 w-4" />
+            <span className="text-sm font-medium">Composições</span>
+          </div>
+          <p className="text-2xl font-bold text-purple-800 tabular-nums">{groupCount}</p>
+        </div>
+      )}
     </div>
   )
 }
@@ -145,9 +158,18 @@ function StatusTimeline({ status }: { status: ProposalStatus }) {
 }
 
 // Proposal card component
-function ProposalCard({ proposal, onViewDetails }: { proposal: ProposalWithCota; onViewDetails: () => void }) {
+function ProposalCard({
+  proposal,
+  onViewDetails,
+  groupInfo
+}: {
+  proposal: ProposalWithCota
+  onViewDetails: () => void
+  groupInfo?: { count: number; index: number } | null
+}) {
   const currentIndex = getStatusIndex(proposal.status)
   const isRejected = proposal.status === 'REJECTED'
+  const isGrouped = !!proposal.group_id && groupInfo && groupInfo.count > 1
 
   return (
     <Card className={`border card-hover ${isRejected ? 'border-red-200 bg-red-50/30' : proposal.status === 'COMPLETED' ? 'border-green-200 bg-green-50/30' : ''}`}>
@@ -155,11 +177,17 @@ function ProposalCard({ proposal, onViewDetails }: { proposal: ProposalWithCota;
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Cota Info */}
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <h3 className="font-semibold text-lg">{proposal.cota?.administrator || 'Administradora'}</h3>
               <Badge variant={getStatusBadgeVariant(proposal.status)}>
                 {getProposalStatusLabel(proposal.status)}
               </Badge>
+              {isGrouped && (
+                <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
+                  <Layers className="h-3 w-3 mr-1" />
+                  Composição ({groupInfo.index}/{groupInfo.count})
+                </Badge>
+              )}
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
@@ -184,10 +212,20 @@ function ProposalCard({ proposal, onViewDetails }: { proposal: ProposalWithCota;
           {/* Timeline and Actions */}
           <div className="flex flex-col items-end gap-3">
             <StatusTimeline status={proposal.status} />
-            <Button variant="outline" size="sm" className="transition-all duration-200 hover:scale-105 press-effect" onClick={onViewDetails}>
-              <Eye className="h-4 w-4 mr-1" />
-              Detalhes
-            </Button>
+            <div className="flex gap-2">
+              {isGrouped && (
+                <Link href={`/composicao/${proposal.group_id}`}>
+                  <Button variant="outline" size="sm" className="transition-all duration-200 hover:scale-105 press-effect bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100">
+                    <Layers className="h-4 w-4 mr-1" />
+                    Ver Grupo
+                  </Button>
+                </Link>
+              )}
+              <Button variant="outline" size="sm" className="transition-all duration-200 hover:scale-105 press-effect" onClick={onViewDetails}>
+                <Eye className="h-4 w-4 mr-1" />
+                Detalhes
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -342,13 +380,45 @@ export default function MinhasPropostasPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {proposals.map((proposal) => (
-                    <ProposalCard
-                      key={proposal.id}
-                      proposal={proposal}
-                      onViewDetails={() => router.push(`/proposta/${proposal.id}`)}
-                    />
-                  ))}
+                  {(() => {
+                    // Compute group information for all proposals
+                    const groupCounts: Record<string, number> = {}
+                    const groupIndexes: Record<string, number> = {}
+
+                    // First pass: count proposals per group
+                    proposals.forEach((p) => {
+                      if (p.group_id) {
+                        groupCounts[p.group_id] = (groupCounts[p.group_id] || 0) + 1
+                      }
+                    })
+
+                    // Second pass: assign index within each group
+                    const groupCurrentIndex: Record<string, number> = {}
+                    proposals.forEach((p) => {
+                      if (p.group_id) {
+                        groupCurrentIndex[p.group_id] = (groupCurrentIndex[p.group_id] || 0) + 1
+                        groupIndexes[p.id] = groupCurrentIndex[p.group_id]
+                      }
+                    })
+
+                    return proposals.map((proposal) => {
+                      const groupInfo = proposal.group_id
+                        ? {
+                            count: groupCounts[proposal.group_id],
+                            index: groupIndexes[proposal.id]
+                          }
+                        : null
+
+                      return (
+                        <ProposalCard
+                          key={proposal.id}
+                          proposal={proposal}
+                          groupInfo={groupInfo}
+                          onViewDetails={() => router.push(`/proposta/${proposal.id}`)}
+                        />
+                      )
+                    })
+                  })()}
                 </div>
               )}
 
