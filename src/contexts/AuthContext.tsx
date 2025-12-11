@@ -212,18 +212,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
+    // Clear local state first for immediate UI update
+    setUser(null)
+    setSession(null)
+    setProfile(null)
+
     try {
-      const { error } = await supabase.auth.signOut()
+      // Use scope: 'local' to only clear the local session
+      // This is more reliable and avoids issues with global sign out
+      const { error } = await supabase.auth.signOut({ scope: 'local' })
       if (error) {
         console.error('Error signing out:', error)
       }
     } catch (error) {
       console.error('Error signing out:', error)
-    } finally {
-      // Always clear local state even if API call fails
-      setUser(null)
-      setSession(null)
-      setProfile(null)
     }
   }
 
