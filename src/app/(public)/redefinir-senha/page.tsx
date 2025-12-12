@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, resetClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -105,9 +105,19 @@ export default function RedefinirSenhaPage() {
     console.log('Starting password update...')
 
     try {
-      const { data, error } = await supabase.auth.updateUser({
+      // Create a timeout promise to prevent hanging forever
+      const timeoutPromise = new Promise<{ data: null; error: Error }>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('A operação expirou. Por favor, tente novamente.'))
+        }, 15000) // 15 second timeout
+      })
+
+      // Race between the actual update and the timeout
+      const updatePromise = supabase.auth.updateUser({
         password: password,
       })
+
+      const { data, error } = await Promise.race([updatePromise, timeoutPromise])
 
       console.log('Update result:', { data, error })
 
@@ -119,6 +129,13 @@ export default function RedefinirSenhaPage() {
       }
 
       console.log('Password updated successfully!')
+
+      // Sign out to clear the recovery session and force fresh login
+      await supabase.auth.signOut({ scope: 'local' })
+
+      // Reset the client to ensure clean state
+      resetClient()
+
       setLoading(false)
       setSuccess(true)
 
@@ -127,7 +144,9 @@ export default function RedefinirSenhaPage() {
       }, 3000)
     } catch (err) {
       console.error('Exception:', err)
-      setError('Ocorreu um erro ao redefinir a senha. Tente novamente.')
+      // Reset the client on error to prevent corrupted state
+      resetClient()
+      setError(err instanceof Error ? err.message : 'Ocorreu um erro ao redefinir a senha. Tente novamente.')
       setLoading(false)
     }
   }
