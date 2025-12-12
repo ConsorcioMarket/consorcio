@@ -25,33 +25,55 @@ export default function RedefinirSenhaPage() {
   const router = useRouter()
 
   useEffect(() => {
+    let isMounted = true
+
     const checkSession = async () => {
-      // Check for existing session (set by /auth/callback)
-      const { data: { session } } = await supabase.auth.getSession()
+      // Set up auth state listener FIRST
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          console.log('Auth event:', event, 'Has session:', !!session)
+          if (isMounted && (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+            if (session) {
+              console.log('Session detected via event:', event)
+              setIsValidSession(true)
+              setChecking(false)
+            }
+          }
+        }
+      )
 
-      console.log("session", session);
+      // Small delay to let onAuthStateChange fire first
+      await new Promise(resolve => setTimeout(resolve, 100))
 
-      if (session) {
+      // Then check for existing session
+      const { data: { session }, error } = await supabase.auth.getSession()
+      console.log("getSession result:", { session: !!session, error })
+
+      if (session && isMounted) {
+        console.log('Session found via getSession')
         setIsValidSession(true)
         setChecking(false)
         return
       }
 
-      // Listen for auth state changes (PASSWORD_RECOVERY event)
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-          console.log('Auth event:', event)
-          if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
-            setIsValidSession(true)
-            setChecking(false)
-          }
-        }
-      )
+      // Also try getUser as a fallback
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      console.log("getUser result:", { user: !!user, error: userError?.message })
 
-      // Give some time for session to be detected
-      setTimeout(() => {
+      if (user && isMounted) {
+        console.log('User found via getUser')
+        setIsValidSession(true)
         setChecking(false)
-      }, 1500)
+        return
+      }
+
+      // Give more time for session to be detected
+      setTimeout(() => {
+        if (isMounted) {
+          console.log('Timeout reached, no session found')
+          setChecking(false)
+        }
+      }, 2000)
 
       return () => {
         subscription.unsubscribe()
@@ -59,6 +81,10 @@ export default function RedefinirSenhaPage() {
     }
 
     checkSession()
+
+    return () => {
+      isMounted = false
+    }
   }, [supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
