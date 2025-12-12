@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react'
@@ -24,50 +24,42 @@ export default function RedefinirSenhaPage() {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
 
-  const handleAuthStateChange = useCallback(async () => {
-    // Set up auth state listener for PASSWORD_RECOVERY event
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth event:', event)
-
-        if (event === 'PASSWORD_RECOVERY') {
-          // User clicked the recovery link - they can now update password
-          setIsValidSession(true)
-          setChecking(false)
-        } else if (event === 'SIGNED_IN' && session) {
-          // Check if this is from a recovery flow
-          setIsValidSession(true)
-          setChecking(false)
-        } else if (event === 'TOKEN_REFRESHED' && session) {
-          setIsValidSession(true)
-          setChecking(false)
-        }
-      }
-    )
-
-    // Also check for existing session
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      setIsValidSession(true)
-      setChecking(false)
-    } else {
-      // Give Supabase time to process the URL hash (contains the recovery token)
-      // The hash is automatically processed by Supabase client on page load
-      setTimeout(() => {
-        if (!isValidSession) {
-          setChecking(false)
-        }
-      }, 2000)
-    }
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [supabase, isValidSession])
-
   useEffect(() => {
-    handleAuthStateChange()
-  }, [handleAuthStateChange])
+    const checkSession = async () => {
+      // Check for existing session (set by /auth/callback)
+      const { data: { session } } = await supabase.auth.getSession()
+
+      console.log("session", session);
+
+      if (session) {
+        setIsValidSession(true)
+        setChecking(false)
+        return
+      }
+
+      // Listen for auth state changes (PASSWORD_RECOVERY event)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          console.log('Auth event:', event)
+          if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+            setIsValidSession(true)
+            setChecking(false)
+          }
+        }
+      )
+
+      // Give some time for session to be detected
+      setTimeout(() => {
+        setChecking(false)
+      }, 1500)
+
+      return () => {
+        subscription.unsubscribe()
+      }
+    }
+
+    checkSession()
+  }, [supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

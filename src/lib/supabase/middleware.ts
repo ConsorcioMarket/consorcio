@@ -29,6 +29,8 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
+  const pathname = request.nextUrl.pathname
+
   // Do not run code between createServerClient and
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
@@ -41,7 +43,8 @@ export async function updateSession(request: NextRequest) {
   // const adminRoutes = ['/admin'] // TODO: implement admin route protection
   const authRoutes = ['/login', '/cadastro', '/recuperar-senha']
 
-  const pathname = request.nextUrl.pathname
+  // Routes that need special handling (password reset with code)
+  const passwordResetRoutes = ['/redefinir-senha']
 
   // Redirect unauthenticated users from protected routes
   if (!user && protectedRoutes.some(route => pathname.startsWith(route))) {
@@ -51,8 +54,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users from auth routes
-  if (user && authRoutes.some(route => pathname.startsWith(route))) {
+  // Redirect authenticated users from auth routes (but NOT from password reset)
+  if (user && authRoutes.some(route => pathname.startsWith(route)) && !passwordResetRoutes.some(route => pathname.startsWith(route))) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)

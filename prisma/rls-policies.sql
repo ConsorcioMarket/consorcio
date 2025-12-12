@@ -27,6 +27,23 @@ $$;
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
 
 -- ============================================
+-- HELPER FUNCTION TO GET OWN PROFILE (BYPASSES RLS)
+-- ============================================
+CREATE OR REPLACE FUNCTION public.get_my_profile()
+RETURNS SETOF profiles_pf
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY SELECT * FROM profiles_pf WHERE id = auth.uid();
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_my_profile() TO authenticated;
+
+-- ============================================
 -- PROFILES_PF TABLE
 -- ============================================
 
@@ -285,6 +302,9 @@ ALTER TABLE proposal_history ENABLE ROW LEVEL SECURITY;
 -- Drop existing policies if any
 DROP POLICY IF EXISTS "Users can read history of their proposals" ON proposal_history;
 DROP POLICY IF EXISTS "Admins can manage all history" ON proposal_history;
+DROP POLICY IF EXISTS "Admins can insert history" ON proposal_history;
+DROP POLICY IF EXISTS "Admins can update history" ON proposal_history;
+DROP POLICY IF EXISTS "Admins can delete history" ON proposal_history;
 
 -- Select policy: Users can read history of their own proposals OR admin can read all
 CREATE POLICY "Users can read history of their proposals"
