@@ -76,24 +76,32 @@ export default function RedefinirSenhaPage() {
     }
 
     setLoading(true)
+    console.log('Starting password update...')
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      const { data, error } = await supabase.auth.updateUser({
         password: password,
       })
 
+      console.log('Update result:', { data, error })
+
       if (error) {
+        console.log('Error updating password:', error)
         setError(error.message)
+        setLoading(false)
         return
       }
 
+      console.log('Password updated successfully!')
+      setLoading(false)
       setSuccess(true)
+
       setTimeout(() => {
         router.push('/login')
       }, 3000)
-    } catch {
+    } catch (err) {
+      console.error('Exception:', err)
       setError('Ocorreu um erro ao redefinir a senha. Tente novamente.')
-    } finally {
       setLoading(false)
     }
   }
