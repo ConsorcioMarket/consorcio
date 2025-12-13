@@ -13,8 +13,3 @@ export function createClient() {
   }
   return supabaseClient
 }
-
-// Reset the singleton client - useful when the client gets into a bad state
-export function resetClient() {
-  supabaseClient = null
-}

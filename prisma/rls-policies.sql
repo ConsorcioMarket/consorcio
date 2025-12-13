@@ -2,8 +2,18 @@
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- Consórcio Market
 -- ============================================
-
+--
 -- Run this SQL in Supabase Dashboard > SQL Editor
+-- This is the SINGLE SOURCE OF TRUTH for all RLS policies and Supabase functions
+--
+-- ============================================
+
+-- ============================================
+-- CLEANUP: Disable old trigger
+-- Profile creation is now handled in frontend (AuthContext.tsx)
+-- ============================================
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+-- DROP FUNCTION IF EXISTS public.handle_new_user(); -- Uncomment to fully remove
 
 -- ============================================
 -- HELPER FUNCTION FOR ADMIN CHECK
@@ -84,6 +94,7 @@ ALTER TABLE profiles_pj ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can insert their own PJ" ON profiles_pj;
 DROP POLICY IF EXISTS "Users can read their own PJ" ON profiles_pj;
 DROP POLICY IF EXISTS "Users can update their own PJ" ON profiles_pj;
+DROP POLICY IF EXISTS "Users can delete their own PJ" ON profiles_pj;
 DROP POLICY IF EXISTS "Admins can read all PJ" ON profiles_pj;
 DROP POLICY IF EXISTS "Admins can update all PJ" ON profiles_pj;
 
@@ -102,6 +113,11 @@ CREATE POLICY "Users can update their own PJ"
 ON profiles_pj FOR UPDATE TO authenticated
 USING (auth.uid()::text = pf_id::text OR public.is_admin())
 WITH CHECK (auth.uid()::text = pf_id::text OR public.is_admin());
+
+-- Delete policy: Users can delete their own PJ OR admin can delete all
+CREATE POLICY "Users can delete their own PJ"
+ON profiles_pj FOR DELETE TO authenticated
+USING (auth.uid()::text = pf_id::text OR public.is_admin());
 
 -- ============================================
 -- COTAS TABLE
