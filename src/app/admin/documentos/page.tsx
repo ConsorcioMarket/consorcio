@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { FileText, Search, Filter, ChevronLeft, ChevronRight, Check, X, AlertCircle, ExternalLink, Eye } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -80,7 +80,7 @@ export default function AdminDocumentosPage() {
 
   const supabase = useMemo(() => createClient(), [])
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     setLoading(true)
 
     let query = supabase
@@ -160,11 +160,11 @@ export default function AdminDocumentosPage() {
     setDocuments(documentsWithOwners)
     setTotalCount(count || 0)
     setLoading(false)
-  }
+  }, [supabase, page, statusFilter, ownerTypeFilter, searchTerm])
 
   useEffect(() => {
     fetchDocuments()
-  }, [supabase, page, statusFilter, ownerTypeFilter, searchTerm])
+  }, [fetchDocuments])
 
   const handleAction = async () => {
     if (!actionDialog.document || !actionDialog.type) return

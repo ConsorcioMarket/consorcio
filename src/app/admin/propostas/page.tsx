@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { FileText, Eye, Search, Filter, ChevronLeft, ChevronRight, Check, X, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -77,7 +77,7 @@ export default function AdminPropostasPage() {
 
   const supabase = useMemo(() => createClient(), [])
 
-  const fetchProposals = async () => {
+  const fetchProposals = useCallback(async () => {
     setLoading(true)
 
     let query = supabase
@@ -127,11 +127,11 @@ export default function AdminPropostasPage() {
     setProposals(transformedProposals)
     setTotalCount(count || 0)
     setLoading(false)
-  }
+  }, [supabase, page, statusFilter, searchTerm])
 
   useEffect(() => {
     fetchProposals()
-  }, [supabase, page, statusFilter, searchTerm])
+  }, [fetchProposals])
 
   const handleAction = async () => {
     if (!actionDialog.proposal || !actionDialog.type) return

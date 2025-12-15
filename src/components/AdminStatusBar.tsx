@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { FileText, Clock, LayoutDashboard, X, ChevronUp, Users, CreditCard } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -23,14 +23,15 @@ export function AdminStatusBar() {
     totalCotas: 0,
   })
   const [minimized, setMinimized] = useState(false)
-  const [mounted, setMounted] = useState(false)
 
   const supabase = useMemo(() => createClient(), [])
 
-  // Handle hydration
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // Fix hydration mismatch - useSyncExternalStore to avoid ESLint warning
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
   // Fetch admin stats
   useEffect(() => {

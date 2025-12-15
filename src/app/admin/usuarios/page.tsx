@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Users, Search, Filter, ChevronLeft, ChevronRight, Check, X, AlertCircle, Building2, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -114,7 +114,7 @@ export default function AdminUsuariosPage() {
   const supabase = useMemo(() => createClient(), [])
 
   // Fetch PF users
-  const fetchUsersPF = async () => {
+  const fetchUsersPF = useCallback(async () => {
     setLoadingPF(true)
 
     let query = supabase
@@ -160,10 +160,10 @@ export default function AdminUsuariosPage() {
     setUsersPF(usersWithCounts)
     setTotalCountPF(count || 0)
     setLoadingPF(false)
-  }
+  }, [supabase, pagePF, statusFilterPF, searchTermPF])
 
   // Fetch PJ users
-  const fetchUsersPJ = async () => {
+  const fetchUsersPJ = useCallback(async () => {
     setLoadingPJ(true)
 
     let query = supabase
@@ -218,19 +218,19 @@ export default function AdminUsuariosPage() {
     setUsersPJ(pjsWithOwners)
     setTotalCountPJ(count || 0)
     setLoadingPJ(false)
-  }
+  }, [supabase, pagePJ, statusFilterPJ, searchTermPJ])
 
   useEffect(() => {
     if (activeTab === 'pf') {
       fetchUsersPF()
     }
-  }, [activeTab, supabase, pagePF, statusFilterPF, searchTermPF])
+  }, [activeTab, fetchUsersPF])
 
   useEffect(() => {
     if (activeTab === 'pj') {
       fetchUsersPJ()
     }
-  }, [activeTab, supabase, pagePJ, statusFilterPJ, searchTermPJ])
+  }, [activeTab, fetchUsersPJ])
 
   const handleAction = async () => {
     if (!actionDialog.entity || !actionDialog.type) return

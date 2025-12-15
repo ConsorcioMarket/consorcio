@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Menu, X, User, LogOut, FileText, Home, PlusCircle, ShoppingCart, ChevronDown, Clock, CreditCard, Users, LayoutDashboard, Shield, ClipboardList, Settings } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
@@ -41,12 +41,14 @@ export function Header() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [userStats, setUserStats] = useState<UserStats>({ cotasCount: 0, proposalsCount: 0, pendingProposals: 0 })
   const userMenuRef = useRef<HTMLDivElement>(null)
-  const [mounted, setMounted] = useState(false)
 
   // Fix hydration mismatch by only rendering auth-dependent content after mount
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // Using useSyncExternalStore to avoid ESLint warning about setState in effect
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
   const supabase = createClient()
 

@@ -185,7 +185,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             onConflict: 'id'
           })
 
-        if (profileError && profileError.code !== '23505') {
+        // Ignore duplicate key (23505) and RLS policy violation (42501) errors
+        // 42501 can happen if there's a race condition with onAuthStateChange
+        // The profile is already created, so we can safely ignore these
+        if (profileError && profileError.code !== '23505' && profileError.code !== '42501') {
           console.error('Error creating profile:', profileError)
           // Don't return error here - the user is already created in auth
           // The profile can be created later or admin can fix it
