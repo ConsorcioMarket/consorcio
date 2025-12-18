@@ -349,7 +349,7 @@ export default function ComposicaoPage() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary" className="bg-white">
+                      <Badge variant="outline" className="bg-white text-gray-700 border-gray-300">
                         {proposals.length} {proposals.length === 1 ? 'cota' : 'cotas'}
                       </Badge>
                       {statusCounts.approved > 0 && (
