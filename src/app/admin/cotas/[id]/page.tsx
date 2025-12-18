@@ -14,6 +14,7 @@ import {
   AlertCircle,
   CheckCircle,
   Download,
+  Loader2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -65,6 +66,13 @@ function getDocStatusBadgeVariant(status: DocumentStatus): 'default' | 'secondar
   return variants[status] || 'outline'
 }
 
+const STATUS_OPTIONS: { value: CotaStatus; label: string }[] = [
+  { value: 'AVAILABLE', label: 'Disponível' },
+  { value: 'RESERVED', label: 'Reservada' },
+  { value: 'SOLD', label: 'Vendida' },
+  { value: 'REMOVED', label: 'Removida' },
+]
+
 // Parse currency input
 function parseCurrency(value: string): number {
   const cleaned = value.replace(/[^\d,]/g, '').replace(',', '.')
@@ -97,6 +105,9 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
     nInstallments: '',
     installmentValue: '',
   })
+
+  // Status change state
+  const [updatingStatus, setUpdatingStatus] = useState(false)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -320,6 +331,41 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
     })
     setEditMode(false)
     setError(null)
+  }
+
+  const handleStatusChange = async (newStatus: CotaStatus) => {
+    if (!cota || newStatus === cota.status) return
+
+    const confirmed = window.confirm(
+      `Confirma a alteração do status de "${getCotaStatusLabel(cota.status)}" para "${getCotaStatusLabel(newStatus)}"?`
+    )
+    if (!confirmed) return
+
+    setUpdatingStatus(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/cotas/${cota.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        setError(errorData.error || 'Erro ao atualizar status')
+        return
+      }
+
+      setCota({ ...cota, status: newStatus })
+      setSuccess('Status atualizado com sucesso!')
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err) {
+      console.error('Error updating status:', err)
+      setError('Erro ao atualizar status. Tente novamente.')
+    } finally {
+      setUpdatingStatus(false)
+    }
   }
 
   if (loading) {
@@ -613,28 +659,52 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
             <CardHeader>
               <CardTitle>Status da Cota</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Status Atual</span>
-                <Badge variant={getStatusBadgeVariant(cota.status)}>
-                  {getCotaStatusLabel(cota.status)}
-                </Badge>
+            <CardContent className="space-y-4">
+              {/* Status Dropdown */}
+              <div>
+                <Label className="text-sm text-muted-foreground mb-2 block">Alterar Status</Label>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={cota.status}
+                    onChange={(e) => handleStatusChange(e.target.value as CotaStatus)}
+                    disabled={updatingStatus}
+                    className={`flex-1 h-10 rounded-md border px-3 py-2 text-sm font-medium cursor-pointer transition-colors ${
+                      cota.status === 'AVAILABLE'
+                        ? 'bg-green-100 border-green-300 text-green-800'
+                        : cota.status === 'RESERVED'
+                        ? 'bg-yellow-100 border-yellow-300 text-yellow-800'
+                        : cota.status === 'SOLD'
+                        ? 'bg-gray-100 border-gray-300 text-gray-800'
+                        : 'bg-red-100 border-red-300 text-red-800'
+                    }`}
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  {updatingStatus && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Extrato</span>
-                {statement ? (
-                  <Badge variant={getDocStatusBadgeVariant(statement.status)}>
-                    {getDocumentStatusLabel(statement.status)}
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">Não enviado</Badge>
-                )}
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Última atualização</span>
-                <span className="text-sm">
-                  {new Date(cota.updated_at).toLocaleDateString('pt-BR')}
-                </span>
+
+              <div className="pt-3 border-t space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Extrato</span>
+                  {statement ? (
+                    <Badge variant={getDocStatusBadgeVariant(statement.status)}>
+                      {getDocumentStatusLabel(statement.status)}
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">Não enviado</Badge>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Última atualização</span>
+                  <span className="text-sm">
+                    {new Date(cota.updated_at).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>

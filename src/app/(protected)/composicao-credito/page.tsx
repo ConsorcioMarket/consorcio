@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, User, Building2, CheckCircle, AlertTriangle, X } from 'lucide-react'
+import { ArrowLeft, User, Building2, CheckCircle, AlertTriangle, X, CheckCircle2, Circle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
@@ -324,6 +324,26 @@ function ComposicaoCreditoContent() {
                 ? `${cotas.length} cotas selecionadas`
                 : 'Confirme os dados e envie sua proposta'}
             </p>
+
+            {/* Step Indicators */}
+            <div className="flex items-center justify-center gap-3 pt-4 text-sm">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-5 w-5 text-green-300" />
+                <span className="text-white/80">1. Cotas</span>
+              </div>
+              <div className="w-8 h-px bg-white/40" />
+              <div className="flex items-center gap-1.5">
+                <div className="h-5 w-5 rounded-full border-2 border-white flex items-center justify-center">
+                  <span className="text-xs font-bold">2</span>
+                </div>
+                <span className="text-white font-medium">2. Comprador</span>
+              </div>
+              <div className="w-8 h-px bg-white/40" />
+              <div className="flex items-center gap-1.5">
+                <Circle className="h-5 w-5 text-white/50" />
+                <span className="text-white/50">3. Enviar</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -563,25 +583,37 @@ function ComposicaoCreditoContent() {
                     )}
 
                     {/* Submit */}
-                    <div className="flex gap-4 mt-8 pt-6 border-t">
-                      <Button
-                        variant="outline"
-                        onClick={() => router.push('/')}
-                        className="flex-1"
-                      >
-                        Cancelar
-                      </Button>
-                      <Button
-                        onClick={handleSubmit}
-                        disabled={submitting || (buyerType === 'PJ' && !selectedPJId)}
-                        className="flex-1"
-                      >
-                        {submitting
-                          ? 'Enviando...'
-                          : isMultiCota
-                            ? `Enviar ${cotas.length} Propostas`
-                            : 'Enviar Proposta'}
-                      </Button>
+                    <div className="mt-8 pt-6 border-t space-y-4">
+                      {/* Warning when PJ is selected but no company chosen */}
+                      {buyerType === 'PJ' && !selectedPJId && companies.length > 0 && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <p className="text-sm text-amber-800">
+                            Selecione uma empresa acima para continuar com a proposta.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex gap-4">
+                        <Button
+                          variant="outline"
+                          onClick={() => router.push('/')}
+                          className="flex-1"
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          onClick={handleSubmit}
+                          disabled={submitting || (buyerType === 'PJ' && !selectedPJId)}
+                          className="flex-1"
+                        >
+                          {submitting
+                            ? 'Enviando...'
+                            : isMultiCota
+                              ? `Enviar ${cotas.length} Propostas`
+                              : 'Enviar Proposta'}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

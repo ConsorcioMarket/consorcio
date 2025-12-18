@@ -36,10 +36,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Create profile for users who don't have one (legacy users or failed signups)
   const createMissingProfile = useCallback(async (authUser: User) => {
     const now = new Date().toISOString()
-    // Use upsert to avoid duplicate key errors if profile is being created simultaneously
-    const { data, error } = await supabase
+
+    // First, try to insert the profile
+    const { error: insertError } = await supabase
       .from('profiles_pf')
-      .upsert({
+      .insert({
         id: authUser.id,
         email: authUser.email || '',
         full_name: authUser.user_metadata?.full_name || '',
@@ -49,28 +50,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         status: 'INCOMPLETE',
         created_at: now,
         updated_at: now,
-      }, {
-        onConflict: 'id',
-        ignoreDuplicates: true
       })
-      .select()
-      .single()
 
-    if (error) {
-      // If error is duplicate key, try to fetch the existing profile
-      if (error.code === '23505') {
-        const { data: existingProfile } = await supabase
-          .from('profiles_pf')
-          .select('*')
-          .eq('id', authUser.id)
-          .single()
-        return existingProfile as ProfilePF | null
+    // If insert failed (duplicate or other error), just fetch the existing profile
+    if (insertError) {
+      // Only log if it's not a duplicate key error
+      if (insertError.code !== '23505') {
+        console.error('Error inserting profile:', insertError)
       }
-      console.error('Error creating missing profile:', error)
+    }
+
+    // Always fetch the profile after insert attempt
+    const { data: profile, error: fetchError } = await supabase
+      .from('profiles_pf')
+      .select('*')
+      .eq('id', authUser.id)
+      .maybeSingle()
+
+    if (fetchError) {
+      console.error('Error fetching profile after create:', fetchError)
       return null
     }
 
-    return data as ProfilePF
+    return profile as ProfilePF | null
   }, [supabase])
 
   const fetchProfile = useCallback(async (userId: string, authUser?: User) => {
@@ -163,35 +165,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // If user was created successfully, create the profile manually
-      // This replaces the database trigger which was causing 500 errors
-      // Use upsert to handle race condition with onAuthStateChange
-      // Note: ignoreDuplicates was removed because it prevented phone from being saved
-      // if profile was already created by a database trigger
+      // Profile creation will be handled by createMissingProfile on first login
+      // This avoids race conditions and duplicate insert attempts
       if (data.user) {
-        const now = new Date().toISOString()
-        const { error: profileError } = await supabase
-          .from('profiles_pf')
-          .upsert({
-            id: data.user.id,
-            email: email,
-            full_name: userData.full_name,
-            cpf: userData.cpf || '',
-            phone: userData.phone,
-            role: 'USER',
-            status: 'INCOMPLETE',
-            created_at: now,
-            updated_at: now,
-          }, {
-            onConflict: 'id'
-          })
-
-        // Ignore duplicate key (23505) and RLS policy violation (42501) errors
-        // 42501 can happen if there's a race condition with onAuthStateChange
-        // The profile is already created, so we can safely ignore these
-        if (profileError && profileError.code !== '23505' && profileError.code !== '42501') {
-          console.error('Error creating profile:', profileError)
-          // Don't return error here - the user is already created in auth
-          // The profile can be created later or admin can fix it
+        // Sign out after registration so user goes to login page cleanly
+        // The profile will be created when they log in via createMissingProfile
+        try {
+          await Promise.race([
+            supabase.auth.signOut({ scope: 'local' }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('SignOut timeout')), 3000))
+          ])
+        } catch {
+          // Ignore signOut errors - user will be redirected to login anyway
         }
       }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { X, Trash2, ShoppingCart, ArrowRight } from 'lucide-react'
+import { X, Trash2, ShoppingCart, ArrowRight, CheckCircle2, Circle, LogIn } from 'lucide-react'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -124,6 +124,29 @@ export function CartDrawer() {
           <>
             <Separator />
 
+            {/* Step Indicators */}
+            <div className="py-4">
+              <p className="text-xs text-muted-foreground mb-3 font-medium">Próximos passos:</p>
+              <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span className="text-green-700 font-medium">1. Selecionar cotas</span>
+                </div>
+                <div className="flex-1 h-px bg-gray-300" />
+                <div className="flex items-center gap-1.5">
+                  <Circle className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">2. Escolher comprador</span>
+                </div>
+                <div className="flex-1 h-px bg-gray-300" />
+                <div className="flex items-center gap-1.5">
+                  <Circle className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">3. Enviar proposta</span>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Totals */}
             <div className="py-4 space-y-3">
               <div className="flex justify-between text-sm">
@@ -149,19 +172,40 @@ export function CartDrawer() {
 
             <SheetFooter className="flex-col gap-2 sm:flex-col">
               {user ? (
-                <Button className="w-full press-effect hover-lift" onClick={() => setIsOpen(false)} asChild>
-                  <Link href="/composicao-credito">
-                    Finalizar Proposta
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Link>
-                </Button>
+                <>
+                  <Button className="w-full press-effect hover-lift" onClick={() => setIsOpen(false)} asChild>
+                    <Link href="/composicao-credito">
+                      Continuar para Escolher Comprador
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Link>
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    Na próxima etapa você escolherá se a compra será como PF ou PJ
+                  </p>
+                </>
               ) : (
-                <Button className="w-full press-effect hover-lift" onClick={() => setIsOpen(false)} asChild>
-                  <Link href="/login?returnUrl=/composicao-credito">
-                    Entrar para Continuar
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Link>
-                </Button>
+                <>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2">
+                    <div className="flex items-center gap-2 text-amber-800">
+                      <LogIn className="h-4 w-4 flex-shrink-0" />
+                      <p className="text-sm font-medium">
+                        Faça login para continuar com sua proposta
+                      </p>
+                    </div>
+                    <p className="text-xs text-amber-700 mt-1 ml-6">
+                      Você precisa estar logado para enviar propostas de compra.
+                    </p>
+                  </div>
+                  <Button className="w-full press-effect hover-lift" onClick={() => setIsOpen(false)} asChild>
+                    <Link href="/login?returnUrl=/composicao-credito">
+                      <LogIn className="h-4 w-4 mr-2" />
+                      Entrar para Continuar
+                    </Link>
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    Não tem conta? <Link href="/cadastro" className="text-primary hover:underline" onClick={() => setIsOpen(false)}>Cadastre-se aqui</Link>
+                  </p>
+                </>
               )}
               <Button
                 variant="outline"

@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Menu, X, User, LogOut, FileText, Home, PlusCircle, ShoppingCart, ChevronDown, Clock, CreditCard, Users, LayoutDashboard, Shield, ClipboardList, Settings } from 'lucide-react'
 import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { createClient } from '@/lib/supabase/client'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 
 // Logo component using the actual logo image
 function Logo() {
@@ -35,6 +35,7 @@ interface UserStats {
 
 export function Header() {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, profile, isAdmin, signOut } = useAuth()
   const { items, totals, setIsOpen, clearCart } = useCart()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -115,6 +116,22 @@ export function Header() {
     { href: '/admin/usuarios', label: 'Usuários', icon: Users },
   ]
 
+  // User navigation links (for logged-in non-admin users)
+  const userNavLinks = [
+    { href: '/cotas', label: 'Cotas', icon: CreditCard },
+    { href: '/minhas-cotas', label: 'Minhas Cotas', icon: FileText },
+    { href: '/minhas-propostas', label: 'Minhas Propostas', icon: ClipboardList },
+    { href: '/meus-dados', label: 'Meus Dados', icon: Settings },
+  ]
+
+  // Helper to check if a path is active
+  const isActivePath = (href: string) => {
+    if (href === '/cotas') {
+      return pathname === '/cotas' || pathname === '/' || pathname?.startsWith('/cota/')
+    }
+    return pathname === href || pathname?.startsWith(href + '/')
+  }
+
   return (
     <header className="bg-navy sticky top-0 z-40">
       <div className="container mx-auto px-4">
@@ -122,17 +139,46 @@ export function Header() {
           {/* Logo */}
           <Logo />
 
-          {/* Desktop Navigation - Show admin nav when admin is logged in */}
+          {/* Desktop Navigation - Show nav links for logged-in users */}
           <nav className="hidden md:flex items-center space-x-1">
-            {mounted && isAdmin && (
+            {mounted && user && !isAdmin && (
               <>
-                {adminNavLinks.map((link) => {
+                {userNavLinks.map((link) => {
                   const Icon = link.icon
+                  const isActive = isActivePath(link.href)
                   return (
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                        isActive
+                          ? "text-white bg-white/15"
+                          : "text-gray-300 hover:text-white hover:bg-white/10"
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {link.label}
+                    </Link>
+                  )
+                })}
+              </>
+            )}
+            {mounted && isAdmin && (
+              <>
+                {adminNavLinks.map((link) => {
+                  const Icon = link.icon
+                  const isActive = isActivePath(link.href)
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                        isActive
+                          ? "text-white bg-white/15"
+                          : "text-gray-300 hover:text-white hover:bg-white/10"
+                      )}
                     >
                       <Icon className="h-4 w-4" />
                       {link.label}
@@ -334,7 +380,10 @@ export function Header() {
             <nav className="flex flex-col space-y-4 animate-stagger">
               <Link
                 href="/"
-                className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-primary"
+                className={cn(
+                  "flex items-center gap-2 text-sm font-medium",
+                  pathname === '/' ? "text-white" : "text-gray-300 hover:text-primary"
+                )}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <Home className="h-4 w-4" />
@@ -342,7 +391,10 @@ export function Header() {
               </Link>
               <Link
                 href="/cotas"
-                className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-primary"
+                className={cn(
+                  "flex items-center gap-2 text-sm font-medium",
+                  isActivePath('/cotas') ? "text-white" : "text-gray-300 hover:text-primary"
+                )}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <FileText className="h-4 w-4" />
@@ -352,7 +404,10 @@ export function Header() {
                 <>
                   <Link
                     href="/publicar-cota"
-                    className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-primary"
+                    className={cn(
+                      "flex items-center gap-2 text-sm font-medium",
+                      isActivePath('/publicar-cota') ? "text-white" : "text-gray-300 hover:text-primary"
+                    )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <PlusCircle className="h-4 w-4" />
@@ -360,7 +415,10 @@ export function Header() {
                   </Link>
                   <Link
                     href="/minhas-cotas"
-                    className="flex items-center justify-between text-sm font-medium text-gray-300 hover:text-primary"
+                    className={cn(
+                      "flex items-center justify-between text-sm font-medium",
+                      isActivePath('/minhas-cotas') ? "text-white" : "text-gray-300 hover:text-primary"
+                    )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <span className="flex items-center gap-2">
@@ -373,7 +431,10 @@ export function Header() {
                   </Link>
                   <Link
                     href="/minhas-propostas"
-                    className="flex items-center justify-between text-sm font-medium text-gray-300 hover:text-primary"
+                    className={cn(
+                      "flex items-center justify-between text-sm font-medium",
+                      isActivePath('/minhas-propostas') ? "text-white" : "text-gray-300 hover:text-primary"
+                    )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <span className="flex items-center gap-2">
@@ -393,7 +454,10 @@ export function Header() {
                   </Link>
                   <Link
                     href="/meus-dados"
-                    className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-primary"
+                    className={cn(
+                      "flex items-center gap-2 text-sm font-medium",
+                      isActivePath('/meus-dados') ? "text-white" : "text-gray-300 hover:text-primary"
+                    )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <User className="h-4 w-4" />
@@ -409,11 +473,15 @@ export function Header() {
                       </div>
                       {adminNavLinks.map((link) => {
                         const Icon = link.icon
+                        const isActive = isActivePath(link.href)
                         return (
                           <Link
                             key={link.href}
                             href={link.href}
-                            className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-primary"
+                            className={cn(
+                              "flex items-center gap-2 text-sm font-medium",
+                              isActive ? "text-white" : "text-gray-300 hover:text-primary"
+                            )}
                             onClick={() => setMobileMenuOpen(false)}
                           >
                             <Icon className="h-4 w-4" />

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { CreditCard, FileText, Users, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +16,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
+  const pathname = usePathname()
   const [stats, setStats] = useState<DashboardStats>({
     totalCotas: 0,
     pendingDocuments: 0,
@@ -23,7 +25,7 @@ export default function AdminDashboard() {
   })
   const [loading, setLoading] = useState(true)
 
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = createClient()
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -48,7 +50,7 @@ export default function AdminDashboard() {
     }
 
     fetchStats()
-  }, [supabase])
+  }, [pathname])
 
   const statCards = [
     {

@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { FileText, Eye, Search, Filter, ChevronLeft, ChevronRight, Check, X, AlertCircle } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { FileText, Eye, Search, Filter, Check, X, AlertCircle, ArrowUpDown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
 import { formatCurrency, getProposalStatusLabel } from '@/lib/utils'
 import type { ProposalStatus, BuyerType } from '@/types/database'
 import {
@@ -59,10 +61,12 @@ function getStatusBadgeVariant(status: ProposalStatus): 'default' | 'secondary' 
 const PAGE_SIZE = 10
 
 export default function AdminPropostasPage() {
+  const pathname = usePathname()
   const [proposals, setProposals] = useState<ProposalWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc') // desc = newest first
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
 
@@ -75,7 +79,7 @@ export default function AdminPropostasPage() {
   const [rejectionReason, setRejectionReason] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = createClient()
 
   const fetchProposals = useCallback(async () => {
     setLoading(true)
@@ -96,7 +100,7 @@ export default function AdminPropostasPage() {
         cota:cotas!proposals_cota_id_fkey(id, administrator, credit_amount, status),
         buyer:profiles_pf!proposals_buyer_pf_id_fkey(id, full_name, email)
       `, { count: 'exact' })
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: sortOrder === 'asc' })
 
     if (statusFilter !== 'all') {
       query = query.eq('status', statusFilter as ProposalStatus)
@@ -127,7 +131,7 @@ export default function AdminPropostasPage() {
     setProposals(transformedProposals)
     setTotalCount(count || 0)
     setLoading(false)
-  }, [supabase, page, statusFilter, searchTerm])
+  }, [pathname, page, statusFilter, searchTerm, sortOrder])
 
   useEffect(() => {
     fetchProposals()
@@ -279,6 +283,18 @@ export default function AdminPropostasPage() {
                 <option value="COMPLETED">Concluída</option>
                 <option value="REJECTED">Rejeitada</option>
               </select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')
+                  setPage(1)
+                }}
+                className="h-10 px-3 whitespace-nowrap"
+              >
+                <ArrowUpDown className="h-4 w-4 mr-2" />
+                {sortOrder === 'desc' ? 'Mais recentes' : 'Mais antigos'}
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -380,32 +396,12 @@ export default function AdminPropostasPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <p className="text-sm text-muted-foreground">
-                Mostrando {(page - 1) * PAGE_SIZE + 1} a {Math.min(page * PAGE_SIZE, totalCount)} de {totalCount} propostas
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="flex items-center px-3 text-sm">
-                  {page} / {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page + 1)}
-                  disabled={page === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              className="mt-4 pt-4 border-t"
+            />
           )}
         </CardContent>
       </Card>

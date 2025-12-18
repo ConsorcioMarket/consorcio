@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Users, Search, Filter, ChevronLeft, ChevronRight, Check, X, AlertCircle, Building2, User } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
+import { Users, Search, Filter, Check, X, AlertCircle, Building2, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
 import { formatCPF, formatCNPJ } from '@/lib/utils'
 import type { PFStatus, PJStatus, UserRole } from '@/types/database'
 import {
@@ -83,6 +85,7 @@ function getStatusLabel(status: string): string {
 const PAGE_SIZE = 10
 
 export default function AdminUsuariosPage() {
+  const pathname = usePathname()
   const [activeTab, setActiveTab] = useState<'pf' | 'pj'>('pf')
 
   // PF state
@@ -111,7 +114,7 @@ export default function AdminUsuariosPage() {
   const [rejectionReason, setRejectionReason] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = createClient()
 
   // Fetch PF users
   const fetchUsersPF = useCallback(async () => {
@@ -160,7 +163,7 @@ export default function AdminUsuariosPage() {
     setUsersPF(usersWithCounts)
     setTotalCountPF(count || 0)
     setLoadingPF(false)
-  }, [supabase, pagePF, statusFilterPF, searchTermPF])
+  }, [pathname, pagePF, statusFilterPF, searchTermPF])
 
   // Fetch PJ users
   const fetchUsersPJ = useCallback(async () => {
@@ -218,7 +221,7 @@ export default function AdminUsuariosPage() {
     setUsersPJ(pjsWithOwners)
     setTotalCountPJ(count || 0)
     setLoadingPJ(false)
-  }, [supabase, pagePJ, statusFilterPJ, searchTermPJ])
+  }, [pathname, pagePJ, statusFilterPJ, searchTermPJ])
 
   useEffect(() => {
     if (activeTab === 'pf') {
@@ -434,32 +437,12 @@ export default function AdminUsuariosPage() {
 
               {/* Pagination */}
               {totalPagesPF > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    Mostrando {(pagePF - 1) * PAGE_SIZE + 1} a {Math.min(pagePF * PAGE_SIZE, totalCountPF)} de {totalCountPF} usuários
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPagePF(pagePF - 1)}
-                      disabled={pagePF === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="flex items-center px-3 text-sm">
-                      {pagePF} / {totalPagesPF}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPagePF(pagePF + 1)}
-                      disabled={pagePF === totalPagesPF}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <Pagination
+                  currentPage={pagePF}
+                  totalPages={totalPagesPF}
+                  onPageChange={setPagePF}
+                  className="mt-4 pt-4 border-t"
+                />
               )}
             </CardContent>
           </Card>
@@ -591,32 +574,12 @@ export default function AdminUsuariosPage() {
 
               {/* Pagination */}
               {totalPagesPJ > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    Mostrando {(pagePJ - 1) * PAGE_SIZE + 1} a {Math.min(pagePJ * PAGE_SIZE, totalCountPJ)} de {totalCountPJ} empresas
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPagePJ(pagePJ - 1)}
-                      disabled={pagePJ === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="flex items-center px-3 text-sm">
-                      {pagePJ} / {totalPagesPJ}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPagePJ(pagePJ + 1)}
-                      disabled={pagePJ === totalPagesPJ}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <Pagination
+                  currentPage={pagePJ}
+                  totalPages={totalPagesPJ}
+                  onPageChange={setPagePJ}
+                  className="mt-4 pt-4 border-t"
+                />
               )}
             </CardContent>
           </Card>

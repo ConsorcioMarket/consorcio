@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { FileText, Search, Filter, ChevronLeft, ChevronRight, Check, X, AlertCircle, ExternalLink, Eye } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
+import { FileText, Search, Filter, Check, X, AlertCircle, ExternalLink, Eye, ArrowUpDown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/lib/utils'
 import type { DocumentStatus, OwnerType, DocumentType } from '@/types/database'
 import {
@@ -55,11 +57,13 @@ function getOwnerTypeBadgeVariant(type: OwnerType): 'default' | 'secondary' | 'd
 const PAGE_SIZE = 10
 
 export default function AdminDocumentosPage() {
+  const pathname = usePathname()
   const [documents, setDocuments] = useState<DocumentWithOwner[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [ownerTypeFilter, setOwnerTypeFilter] = useState('all')
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc') // desc = newest first
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
 
@@ -76,9 +80,64 @@ export default function AdminDocumentosPage() {
   const [previewDialog, setPreviewDialog] = useState<{
     open: boolean
     document: DocumentWithOwner | null
-  }>({ open: false, document: null })
+    signedUrl: string | null
+    loadingUrl: boolean
+  }>({ open: false, document: null, signedUrl: null, loadingUrl: false })
 
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = createClient()
+
+  // Get bucket name from owner type
+  const getBucketName = (ownerType: OwnerType): string => {
+    switch (ownerType) {
+      case 'PF': return 'documents-pf'
+      case 'PJ': return 'documents-pj'
+      case 'COTA': return 'documents-cota'
+      default: return 'documents-pf'
+    }
+  }
+
+  // Extract file path from public URL
+  const getFilePathFromUrl = (url: string, bucketName: string): string | null => {
+    try {
+      // URL format: https://xxx.supabase.co/storage/v1/object/public/{bucket}/{path}
+      const regex = new RegExp(`/object/public/${bucketName}/(.+)$`)
+      const match = url.match(regex)
+      return match ? match[1] : null
+    } catch {
+      return null
+    }
+  }
+
+  // Generate signed URL for private bucket access
+  const getSignedUrl = async (doc: DocumentWithOwner): Promise<string | null> => {
+    const bucketName = getBucketName(doc.owner_type)
+    const filePath = getFilePathFromUrl(doc.file_url, bucketName)
+
+    if (!filePath) {
+      console.error('Could not extract file path from URL:', doc.file_url)
+      return null
+    }
+
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .createSignedUrl(filePath, 3600) // 1 hour expiry
+
+    if (error) {
+      console.error('Error creating signed URL:', error)
+      return null
+    }
+
+    return data.signedUrl
+  }
+
+  // Handle opening preview dialog
+  const handleOpenPreview = async (doc: DocumentWithOwner) => {
+    setPreviewDialog({ open: true, document: doc, signedUrl: null, loadingUrl: true })
+
+    // Try to get a signed URL in case the bucket is private
+    const signedUrl = await getSignedUrl(doc)
+    setPreviewDialog(prev => ({ ...prev, signedUrl, loadingUrl: false }))
+  }
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true)
@@ -86,7 +145,7 @@ export default function AdminDocumentosPage() {
     let query = supabase
       .from('documents')
       .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: sortOrder === 'asc' })
 
     if (statusFilter !== 'all') {
       query = query.eq('status', statusFilter as DocumentStatus)
@@ -160,7 +219,7 @@ export default function AdminDocumentosPage() {
     setDocuments(documentsWithOwners)
     setTotalCount(count || 0)
     setLoading(false)
-  }, [supabase, page, statusFilter, ownerTypeFilter, searchTerm])
+  }, [pathname, page, statusFilter, ownerTypeFilter, searchTerm, sortOrder])
 
   useEffect(() => {
     fetchDocuments()
@@ -268,6 +327,18 @@ export default function AdminDocumentosPage() {
                 <option value="PJ">Pessoa Jurídica</option>
                 <option value="COTA">Cota</option>
               </select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')
+                  setPage(1)
+                }}
+                className="h-10 px-3 whitespace-nowrap"
+              >
+                <ArrowUpDown className="h-4 w-4 mr-2" />
+                {sortOrder === 'desc' ? 'Mais recentes' : 'Mais antigos'}
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -339,7 +410,7 @@ export default function AdminDocumentosPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setPreviewDialog({ open: true, document: doc })}
+                            onClick={() => handleOpenPreview(doc)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -381,32 +452,12 @@ export default function AdminDocumentosPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <p className="text-sm text-muted-foreground">
-                Mostrando {(page - 1) * PAGE_SIZE + 1} a {Math.min(page * PAGE_SIZE, totalCount)} de {totalCount} documentos
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="flex items-center px-3 text-sm">
-                  {page} / {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page + 1)}
-                  disabled={page === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              className="mt-4 pt-4 border-t"
+            />
           )}
         </CardContent>
       </Card>
@@ -481,7 +532,7 @@ export default function AdminDocumentosPage() {
 
       {/* Preview Dialog */}
       <Dialog open={previewDialog.open} onOpenChange={(open) => {
-        if (!open) setPreviewDialog({ open: false, document: null })
+        if (!open) setPreviewDialog({ open: false, document: null, signedUrl: null, loadingUrl: false })
       }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -525,34 +576,73 @@ export default function AdminDocumentosPage() {
 
               {previewDialog.document.file_url && (
                 <div className="border rounded-lg p-4">
-                  {previewDialog.document.file_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={previewDialog.document.file_url}
-                      alt={previewDialog.document.file_name}
-                      className="max-w-full max-h-[400px] mx-auto"
-                    />
-                  ) : previewDialog.document.file_url.match(/\.pdf$/i) ? (
-                    <iframe
-                      src={previewDialog.document.file_url}
-                      className="w-full h-[400px]"
-                      title={previewDialog.document.file_name}
-                    />
-                  ) : (
+                  {previewDialog.loadingUrl ? (
                     <div className="text-center py-8">
-                      <FileText className="h-12 w-12 mx-auto text-gray-400" />
-                      <p className="mt-2 text-muted-foreground">Pré-visualização não disponível</p>
-                      <a
-                        href={previewDialog.document.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 mt-4 text-primary hover:underline"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Abrir em nova aba
-                      </a>
+                      <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+                      <p className="mt-2 text-muted-foreground">Carregando documento...</p>
                     </div>
-                  )}
+                  ) : (() => {
+                    // Use signed URL if available, otherwise fall back to public URL
+                    const displayUrl = previewDialog.signedUrl || previewDialog.document.file_url
+                    const isImage = previewDialog.document.file_name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ||
+                                    previewDialog.document.file_url.match(/\.(jpg|jpeg|png|gif|webp)($|\?)/i)
+                    const isPdf = previewDialog.document.file_name.match(/\.pdf$/i) ||
+                                  previewDialog.document.file_url.match(/\.pdf($|\?)/i)
+
+                    if (isImage) {
+                      return (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={displayUrl}
+                          alt={previewDialog.document.file_name}
+                          className="max-w-full max-h-[400px] mx-auto"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            const container = target.parentElement
+                            if (container && !container.querySelector('.error-message')) {
+                              const errorDiv = document.createElement('div')
+                              errorDiv.className = 'text-center py-8 error-message'
+                              errorDiv.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-red-400"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                <p class="mt-2 text-red-600">Erro ao carregar imagem</p>
+                                <p class="text-sm text-muted-foreground mt-1">O arquivo pode estar inacessível. Verifique as permissões do bucket no Supabase.</p>
+                                <a href="${displayUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 mt-4 text-blue-600 hover:underline">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                  Tentar abrir em nova aba
+                                </a>
+                              `
+                              container.appendChild(errorDiv)
+                            }
+                          }}
+                        />
+                      )
+                    } else if (isPdf) {
+                      return (
+                        <iframe
+                          src={displayUrl}
+                          className="w-full h-[400px]"
+                          title={previewDialog.document.file_name}
+                        />
+                      )
+                    } else {
+                      return (
+                        <div className="text-center py-8">
+                          <FileText className="h-12 w-12 mx-auto text-gray-400" />
+                          <p className="mt-2 text-muted-foreground">Pré-visualização não disponível</p>
+                          <a
+                            href={displayUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 mt-4 text-primary hover:underline"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Abrir em nova aba
+                          </a>
+                        </div>
+                      )
+                    }
+                  })()}
                 </div>
               )}
             </div>

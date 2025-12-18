@@ -1,13 +1,23 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { CreditCard, Eye, FileText, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { CreditCard, Eye, FileText, Search, Filter, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { formatCurrency, getCotaStatusLabel } from '@/lib/utils'
 import type { CotaStatus } from '@/types/database'
 
@@ -27,19 +37,17 @@ interface CotaWithSeller {
   hasStatement: boolean
 }
 
-function getStatusBadgeVariant(status: CotaStatus): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' {
-  const variants: Record<CotaStatus, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
-    AVAILABLE: 'success',
-    RESERVED: 'warning',
-    SOLD: 'default',
-    REMOVED: 'destructive',
-  }
-  return variants[status] || 'outline'
-}
-
 const PAGE_SIZE = 10
 
+const STATUS_OPTIONS: { value: CotaStatus; label: string }[] = [
+  { value: 'AVAILABLE', label: 'Disponível' },
+  { value: 'RESERVED', label: 'Reservada' },
+  { value: 'SOLD', label: 'Vendida' },
+  { value: 'REMOVED', label: 'Removida' },
+]
+
 export default function AdminCotasPage() {
+  const pathname = usePathname()
   const [cotas, setCotas] = useState<CotaWithSeller[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -47,7 +55,15 @@ export default function AdminCotasPage() {
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
 
-  const supabase = useMemo(() => createClient(), [])
+  // Status change dialog
+  const [statusDialog, setStatusDialog] = useState<{
+    open: boolean
+    cota: CotaWithSeller | null
+    newStatus: CotaStatus | null
+  }>({ open: false, cota: null, newStatus: null })
+  const [updatingStatus, setUpdatingStatus] = useState(false)
+
+  const supabase = createClient()
 
   useEffect(() => {
     const fetchCotas = async () => {
@@ -122,7 +138,47 @@ export default function AdminCotasPage() {
     }
 
     fetchCotas()
-  }, [supabase, page, statusFilter, searchTerm])
+  }, [pathname, page, statusFilter, searchTerm])
+
+  const handleStatusChange = (cota: CotaWithSeller, newStatus: CotaStatus) => {
+    if (newStatus === cota.status) return
+    setStatusDialog({ open: true, cota, newStatus })
+  }
+
+  const confirmStatusChange = async () => {
+    if (!statusDialog.cota || !statusDialog.newStatus) return
+
+    setUpdatingStatus(true)
+    try {
+      const response = await fetch(`/api/cotas/${statusDialog.cota.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: statusDialog.newStatus }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        alert(error.error || 'Erro ao atualizar status')
+        return
+      }
+
+      // Update local state
+      setCotas((prev) =>
+        prev.map((c) =>
+          c.id === statusDialog.cota!.id
+            ? { ...c, status: statusDialog.newStatus! }
+            : c
+        )
+      )
+
+      setStatusDialog({ open: false, cota: null, newStatus: null })
+    } catch (error) {
+      console.error('Error updating status:', error)
+      alert('Erro ao atualizar status. Tente novamente.')
+    } finally {
+      setUpdatingStatus(false)
+    }
+  }
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
@@ -226,9 +282,25 @@ export default function AdminCotasPage() {
                       </td>
                       <td className="p-3 text-center">{cota.n_installments}x</td>
                       <td className="p-3 text-center">
-                        <Badge variant={getStatusBadgeVariant(cota.status)}>
-                          {getCotaStatusLabel(cota.status)}
-                        </Badge>
+                        <select
+                          value={cota.status}
+                          onChange={(e) => handleStatusChange(cota, e.target.value as CotaStatus)}
+                          className={`h-8 rounded-md border px-2 py-1 text-xs font-medium cursor-pointer transition-colors ${
+                            cota.status === 'AVAILABLE'
+                              ? 'bg-green-100 border-green-300 text-green-800'
+                              : cota.status === 'RESERVED'
+                              ? 'bg-yellow-100 border-yellow-300 text-yellow-800'
+                              : cota.status === 'SOLD'
+                              ? 'bg-gray-100 border-gray-300 text-gray-800'
+                              : 'bg-red-100 border-red-300 text-red-800'
+                          }`}
+                        >
+                          {STATUS_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td className="p-3 text-center">
                         {cota.hasStatement ? (
@@ -257,35 +329,61 @@ export default function AdminCotasPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <p className="text-sm text-muted-foreground">
-                Mostrando {(page - 1) * PAGE_SIZE + 1} a {Math.min(page * PAGE_SIZE, totalCount)} de {totalCount} cotas
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="flex items-center px-3 text-sm">
-                  {page} / {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page + 1)}
-                  disabled={page === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              className="mt-4 pt-4 border-t"
+            />
           )}
         </CardContent>
       </Card>
+
+      {/* Status Change Confirmation Dialog */}
+      <Dialog
+        open={statusDialog.open}
+        onOpenChange={(open) => {
+          if (!open && !updatingStatus) {
+            setStatusDialog({ open: false, cota: null, newStatus: null })
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Alteração de Status</DialogTitle>
+            <DialogDescription>
+              Você está prestes a alterar o status da cota{' '}
+              <strong>{statusDialog.cota?.administrator}</strong> de{' '}
+              <strong>{getCotaStatusLabel(statusDialog.cota?.status || 'AVAILABLE')}</strong> para{' '}
+              <strong>{getCotaStatusLabel(statusDialog.newStatus || 'AVAILABLE')}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Esta ação será registrada no histórico da cota.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setStatusDialog({ open: false, cota: null, newStatus: null })}
+              disabled={updatingStatus}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={confirmStatusChange} disabled={updatingStatus}>
+              {updatingStatus ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Atualizando...
+                </>
+              ) : (
+                'Confirmar'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

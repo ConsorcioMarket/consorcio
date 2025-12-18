@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -11,7 +11,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isAdmin, setIsAdmin] = useState(false)
   const [checkingRole, setCheckingRole] = useState(true)
 
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = createClient()
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -42,7 +42,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         checkAdminRole()
       }
     }
-  }, [user, authLoading, router, supabase])
+  }, [user, authLoading, router])
 
   if (authLoading || checkingRole) {
     return (

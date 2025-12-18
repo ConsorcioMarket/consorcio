@@ -134,15 +134,63 @@ async function getOrCreateUser(config: UserConfig) {
   return userId
 }
 
+// Calculate monthly rate using Newton-Raphson method (equivalent to Excel RATE)
+function calculateMonthlyRate(
+  nPeriods: number,
+  payment: number,
+  presentValue: number
+): number | null {
+  if (nPeriods <= 0 || payment >= 0 || presentValue <= 0) {
+    return null
+  }
+
+  const maxIterations = 100
+  const tolerance = 1e-7
+  let rate = 0.01 // initial guess
+
+  for (let i = 0; i < maxIterations; i++) {
+    const f =
+      presentValue * Math.pow(1 + rate, nPeriods) +
+      payment * ((Math.pow(1 + rate, nPeriods) - 1) / rate)
+
+    const fPrime =
+      presentValue * nPeriods * Math.pow(1 + rate, nPeriods - 1) +
+      payment *
+        ((nPeriods * Math.pow(1 + rate, nPeriods - 1) * rate - Math.pow(1 + rate, nPeriods) + 1) /
+          (rate * rate))
+
+    if (fPrime === 0) return null
+
+    const newRate = rate - f / fPrime
+
+    if (Math.abs(newRate - rate) < tolerance) {
+      if (newRate > 0 && isFinite(newRate)) {
+        return newRate * 100
+      }
+      return null
+    }
+
+    rate = newRate
+    if (rate < -0.99 || rate > 1) return null
+  }
+
+  return null
+}
+
 // Generate realistic cota data
 function generateCotaData(sellerId: string, administrator: string, creditAmount: number, status: CotaStatus) {
   const outstandingPercentage = 0.3 + Math.random() * 0.4
   const outstandingBalance = Math.round(creditAmount * outstandingPercentage)
   const nInstallments = Math.round(80 + Math.random() * 100)
-  const installmentValue = Math.round((outstandingBalance / nInstallments) * 100) / 100
+  // Calculate a realistic installment value that results in a positive rate
+  // Using a slightly higher installment to ensure positive rate
+  const baseInstallment = outstandingBalance / nInstallments
+  const installmentValue = Math.round(baseInstallment * (1.005 + Math.random() * 0.01) * 100) / 100
   const entryPercentage = Math.round((15 + Math.random() * 25) * 100) / 100
   const entryAmount = Math.round(creditAmount * (entryPercentage / 100))
-  const monthlyRate = Math.round((0.6 + Math.random() * 0.8) * 10000) / 10000
+
+  // Calculate the actual monthly rate using the RATE formula
+  const monthlyRate = calculateMonthlyRate(nInstallments, -installmentValue, outstandingBalance)
 
   return {
     sellerId,

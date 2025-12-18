@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, X, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, X, SlidersHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Pagination } from '@/components/ui/pagination'
 import { ListingTable } from '@/components/ListingTable'
 import { FiltersPanel } from '@/components/FiltersPanel'
 import { DrawerDetails } from '@/components/DrawerDetails'
@@ -261,87 +262,12 @@ export default function CotasPage() {
 
             {/* Pagination */}
             {!loading && totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t">
-                <p className="text-sm text-muted-foreground order-2 sm:order-1">
-                  Página {page} de {totalPages}
-                </p>
-                <div className="flex gap-2 order-1 sm:order-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => goToPage(page - 1)}
-                    disabled={page === 1}
-                    className="px-2 sm:px-3"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    <span className="hidden sm:inline ml-1">Anterior</span>
-                  </Button>
-                  {/* Page numbers - show on mobile too but fewer */}
-                  <div className="flex gap-1">
-                    {Array.from({ length: Math.min(totalPages <= 3 ? totalPages : 3, totalPages) }, (_, i) => {
-                      let pageNum: number
-                      const maxVisible = totalPages <= 3 ? totalPages : 3
-                      if (totalPages <= maxVisible) {
-                        pageNum = i + 1
-                      } else if (page <= 2) {
-                        pageNum = i + 1
-                      } else if (page >= totalPages - 1) {
-                        pageNum = totalPages - (maxVisible - 1) + i
-                      } else {
-                        pageNum = page - 1 + i
-                      }
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={page === pageNum ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => goToPage(pageNum)}
-                          className="w-9"
-                        >
-                          {pageNum}
-                        </Button>
-                      )
-                    })}
-                    {/* Show more pages on desktop */}
-                    {totalPages > 3 && (
-                      <div className="hidden md:flex gap-1">
-                        {Array.from({ length: Math.min(2, totalPages - 3) }, (_, i) => {
-                          let pageNum: number
-                          if (page <= 2) {
-                            pageNum = 4 + i
-                          } else if (page >= totalPages - 1) {
-                            return null
-                          } else {
-                            pageNum = page + 2 + i
-                            if (pageNum > totalPages) return null
-                          }
-                          return (
-                            <Button
-                              key={pageNum}
-                              variant={page === pageNum ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => goToPage(pageNum)}
-                              className="w-9"
-                            >
-                              {pageNum}
-                            </Button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => goToPage(page + 1)}
-                    disabled={page === totalPages}
-                    className="px-2 sm:px-3"
-                  >
-                    <span className="hidden sm:inline mr-1">Próxima</span>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+                className="mt-6 pt-6 border-t"
+              />
             )}
           </Card>
         </div>
