@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { usePathname } from 'next/navigation'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Users, Search, Filter, Check, X, AlertCircle, Building2, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -85,7 +84,6 @@ function getStatusLabel(status: string): string {
 const PAGE_SIZE = 10
 
 export default function AdminUsuariosPage() {
-  const pathname = usePathname()
   const [activeTab, setActiveTab] = useState<'pf' | 'pj'>('pf')
 
   // PF state
@@ -114,10 +112,15 @@ export default function AdminUsuariosPage() {
   const [rejectionReason, setRejectionReason] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+
+  // Request ID refs to prevent race conditions
+  const requestIdPFRef = useRef(0)
+  const requestIdPJRef = useRef(0)
 
   // Fetch PF users
   const fetchUsersPF = useCallback(async () => {
+    const currentRequestId = ++requestIdPFRef.current
     setLoadingPF(true)
 
     let query = supabase
@@ -139,34 +142,42 @@ export default function AdminUsuariosPage() {
 
     const { data, error, count } = await query
 
+    // Ignore stale responses
+    if (currentRequestId !== requestIdPFRef.current) return
+
     if (error) {
       console.error('Error fetching PF users:', error)
       setLoadingPF(false)
       return
     }
 
-    // Fetch counts for each user
-    const usersWithCounts: UserPF[] = []
-    for (const user of data || []) {
-      const [cotasRes, proposalsRes] = await Promise.all([
-        supabase.from('cotas').select('id', { count: 'exact', head: true }).eq('seller_id', user.id),
-        supabase.from('proposals').select('id', { count: 'exact', head: true }).eq('buyer_pf_id', user.id),
-      ])
+    // Fetch counts for all users in parallel
+    const usersWithCounts: UserPF[] = await Promise.all(
+      (data || []).map(async (user) => {
+        const [cotasRes, proposalsRes] = await Promise.all([
+          supabase.from('cotas').select('id', { count: 'exact', head: true }).eq('seller_id', user.id),
+          supabase.from('proposals').select('id', { count: 'exact', head: true }).eq('buyer_pf_id', user.id),
+        ])
 
-      usersWithCounts.push({
-        ...user,
-        cotas_count: cotasRes.count || 0,
-        proposals_count: proposalsRes.count || 0,
+        return {
+          ...user,
+          cotas_count: cotasRes.count || 0,
+          proposals_count: proposalsRes.count || 0,
+        }
       })
-    }
+    )
+
+    // Ignore stale responses
+    if (currentRequestId !== requestIdPFRef.current) return
 
     setUsersPF(usersWithCounts)
     setTotalCountPF(count || 0)
     setLoadingPF(false)
-  }, [pathname, pagePF, statusFilterPF, searchTermPF])
+  }, [supabase, pagePF, statusFilterPF, searchTermPF])
 
   // Fetch PJ users
   const fetchUsersPJ = useCallback(async () => {
+    const currentRequestId = ++requestIdPJRef.current
     setLoadingPJ(true)
 
     let query = supabase
@@ -196,32 +207,39 @@ export default function AdminUsuariosPage() {
 
     const { data, error, count } = await query
 
+    // Ignore stale responses
+    if (currentRequestId !== requestIdPJRef.current) return
+
     if (error) {
       console.error('Error fetching PJ users:', error)
       setLoadingPJ(false)
       return
     }
 
-    // Fetch owner info for each PJ
-    const pjsWithOwners: UserPJ[] = []
-    for (const pj of data || []) {
-      const { data: owner } = await supabase
-        .from('profiles_pf')
-        .select('full_name, email')
-        .eq('id', pj.pf_id)
-        .single()
+    // Fetch owner info for all PJs in parallel
+    const pjsWithOwners: UserPJ[] = await Promise.all(
+      (data || []).map(async (pj) => {
+        const { data: owner } = await supabase
+          .from('profiles_pf')
+          .select('full_name, email')
+          .eq('id', pj.pf_id)
+          .single()
 
-      pjsWithOwners.push({
-        ...pj,
-        owner_name: owner?.full_name || 'Desconhecido',
-        owner_email: owner?.email || '',
+        return {
+          ...pj,
+          owner_name: owner?.full_name || 'Desconhecido',
+          owner_email: owner?.email || '',
+        }
       })
-    }
+    )
+
+    // Ignore stale responses
+    if (currentRequestId !== requestIdPJRef.current) return
 
     setUsersPJ(pjsWithOwners)
     setTotalCountPJ(count || 0)
     setLoadingPJ(false)
-  }, [pathname, pagePJ, statusFilterPJ, searchTermPJ])
+  }, [supabase, pagePJ, statusFilterPJ, searchTermPJ])
 
   useEffect(() => {
     if (activeTab === 'pf') {
