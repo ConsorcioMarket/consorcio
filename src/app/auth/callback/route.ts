@@ -15,6 +15,14 @@ export async function GET(request: Request) {
   if (code) {
     const cookieStore = await cookies()
 
+    // Create response first so we can set cookies on it
+    let redirectUrl = `${origin}${next}`
+    if (type === 'recovery') {
+      redirectUrl = `${origin}/redefinir-senha`
+    }
+
+    const response = NextResponse.redirect(redirectUrl)
+
     const supabase = createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -26,7 +34,9 @@ export async function GET(request: Request) {
           setAll(cookiesToSet) {
             console.log('Setting cookies:', cookiesToSet.map(c => c.name))
             cookiesToSet.forEach(({ name, value, options }) => {
+              // Set cookies on both the cookie store and the response
               cookieStore.set(name, value, options)
+              response.cookies.set(name, value, options)
             })
           },
         },
@@ -38,12 +48,8 @@ export async function GET(request: Request) {
     console.log('Exchange result:', { hasSession: !!data?.session, error: error?.message })
 
     if (!error && data?.session) {
-      // If this is a password recovery, redirect to the reset password page
-      if (type === 'recovery') {
-        console.log('Redirecting to /redefinir-senha')
-        return NextResponse.redirect(`${origin}/redefinir-senha`)
-      }
-      return NextResponse.redirect(`${origin}${next}`)
+      console.log('Session established, redirecting to:', redirectUrl)
+      return response
     }
 
     console.error('Error exchanging code for session:', error)

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -22,32 +21,65 @@ export default function RedefinirSenhaPage() {
   const [checking, setChecking] = useState(true)
 
   const supabase = useMemo(() => createClient(), [])
-  const router = useRouter()
 
   useEffect(() => {
     let isMounted = true
+    let timeoutId: NodeJS.Timeout
 
     const checkSession = async () => {
-      // Set up auth state listener FIRST
+      // Check if we have a hash fragment (Supabase recovery links use hash)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = hashParams.get('access_token')
+      const type = hashParams.get('type')
+
+      console.log('Hash params:', { hasAccessToken: !!accessToken, type })
+
+      // If we have recovery tokens in the hash, Supabase will process them automatically
+      // We need to wait for onAuthStateChange to fire
+
+      // Set up auth state listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         (event, session) => {
           console.log('Auth event:', event, 'Has session:', !!session)
-          if (isMounted && (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
-            if (session) {
+          if (isMounted) {
+            if (event === 'PASSWORD_RECOVERY' ||
+                (event === 'SIGNED_IN' && session) ||
+                (event === 'TOKEN_REFRESHED' && session) ||
+                (event === 'INITIAL_SESSION' && session)) {
               console.log('Session detected via event:', event)
               setIsValidSession(true)
               setChecking(false)
+              // Clear the hash from URL for cleaner look
+              if (window.location.hash) {
+                window.history.replaceState(null, '', window.location.pathname)
+              }
             }
           }
         }
       )
 
-      // Small delay to let onAuthStateChange fire first
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // If there's an access token in the hash, Supabase should process it
+      // Give it time to do so
+      if (accessToken && type === 'recovery') {
+        console.log('Recovery token found in hash, waiting for Supabase to process...')
+        // Supabase client will automatically pick up the tokens from the hash
+        // Wait longer for this to happen
+        timeoutId = setTimeout(() => {
+          if (isMounted && !isValidSession) {
+            console.log('Timeout reached after hash processing attempt')
+            setChecking(false)
+          }
+        }, 5000)
+        return () => subscription.unsubscribe()
+      }
 
-      // Then check for existing session
-      const { data: { session }, error } = await supabase.auth.getSession()
-      console.log("getSession result:", { session: !!session, error })
+      // No hash tokens - check for existing session (redirect from callback)
+      // Small delay to let onAuthStateChange fire first
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      // Check for existing session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      console.log("getSession result:", { session: !!session, error: sessionError?.message })
 
       if (session && isMounted) {
         console.log('Session found via getSession')
@@ -68,12 +100,12 @@ export default function RedefinirSenhaPage() {
       }
 
       // Give more time for session to be detected
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         if (isMounted) {
           console.log('Timeout reached, no session found')
           setChecking(false)
         }
-      }, 2000)
+      }, 3000)
 
       return () => {
         subscription.unsubscribe()
@@ -84,8 +116,9 @@ export default function RedefinirSenhaPage() {
 
     return () => {
       isMounted = false
+      if (timeoutId) clearTimeout(timeoutId)
     }
-  }, [supabase])
+  }, [supabase, isValidSession])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
