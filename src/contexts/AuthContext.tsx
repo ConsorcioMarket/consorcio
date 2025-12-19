@@ -180,22 +180,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (error) return { error }
 
-    // Fetch profile FIRST, then update all state together
-    // This prevents the UI from showing email before name loads
-    if (data.user && data.session) {
-      const profileData = await fetchProfile(data.user.id)
-      setProfile(profileData)
-      setUser(data.user)
-      setSession(data.session)
-    }
-
+    // Don't update state here - let the redirect happen first
+    // The new page will initialize auth state from session cookie
+    // This prevents the header from flashing before redirect
     return { error: null }
   }
 
