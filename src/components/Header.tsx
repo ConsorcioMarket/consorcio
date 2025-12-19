@@ -228,7 +228,7 @@ export function Header() {
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                   >
                     <User className="h-4 w-4" />
-                    <span>{profile?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Conta'}</span>
+                    <span>{profile?.full_name?.split(' ')[0] || 'Conta'}</span>
                     {userStats.pendingProposals > 0 && (
                       <span className="bg-yellow-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                         {userStats.pendingProposals}

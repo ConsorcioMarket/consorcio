@@ -253,6 +253,48 @@ export default function AdminUsuariosPage() {
     }
   }, [activeTab, fetchUsersPJ])
 
+  // Realtime subscription for profiles_pf changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('profiles_pf_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles_pf' },
+        () => {
+          // Refetch when any change happens
+          if (activeTab === 'pf') {
+            fetchUsersPF()
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, activeTab, fetchUsersPF])
+
+  // Realtime subscription for profiles_pj changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('profiles_pj_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles_pj' },
+        () => {
+          // Refetch when any change happens
+          if (activeTab === 'pj') {
+            fetchUsersPJ()
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, activeTab, fetchUsersPJ])
+
   const handleAction = async () => {
     if (!actionDialog.entity || !actionDialog.type) return
 

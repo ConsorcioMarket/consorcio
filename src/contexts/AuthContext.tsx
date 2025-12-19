@@ -44,13 +44,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return data as ProfilePF | null
   }, [supabase])
 
-  // Create profile if missing
+  // Create profile if missing (uses upsert to prevent duplicates)
   const createProfile = useCallback(async (authUser: User) => {
     const now = new Date().toISOString()
 
+    // Use upsert with onConflict to prevent duplicate profiles
     await supabase
       .from('profiles_pf')
-      .insert({
+      .upsert({
         id: authUser.id,
         email: authUser.email || '',
         full_name: authUser.user_metadata?.full_name || '',
@@ -60,6 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         status: 'INCOMPLETE',
         created_at: now,
         updated_at: now,
+      }, {
+        onConflict: 'id',
+        ignoreDuplicates: true, // Don't update if already exists
       })
 
     return fetchProfile(authUser.id)
@@ -89,17 +93,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // Session exists - use it immediately for fast UI
+        // Fetch profile FIRST before updating user state
+        // This prevents UI from showing "Conta" before name loads
+        const profileData = await fetchProfile(session.user.id)
+        if (!isMounted) return
+
+        setProfile(profileData)
         setUser(session.user)
         setSession(session)
         setLoading(false)
-
-        // Fetch profile in background
-        fetchProfile(session.user.id).then(profileData => {
-          if (isMounted && profileData) {
-            setProfile(profileData)
-          }
-        })
 
         // Verify session validity in background (don't block UI)
         supabase.auth.getUser().then(({ error }) => {
@@ -127,23 +129,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         if (!isMounted) return
 
-        setUser(session?.user ?? null)
-        setSession(session)
-        setLoading(false) // Set loading false immediately - don't wait for profile
-
         if (session?.user) {
-          // Fetch profile in background - don't block UI
-          fetchProfile(session.user.id).then(async (profileData) => {
-            if (!isMounted) return
-            if (profileData) {
-              setProfile(profileData)
-            } else if (event === 'SIGNED_IN') {
-              const newProfile = await createProfile(session.user)
-              if (isMounted) setProfile(newProfile)
-            }
-          })
+          // Fetch profile FIRST before updating user state
+          // This prevents UI from showing "Conta" before name loads
+          const profileData = await fetchProfile(session.user.id)
+          if (!isMounted) return
+
+          setProfile(profileData)
+          setUser(session.user)
+          setSession(session)
+          setLoading(false)
         } else {
+          setUser(null)
+          setSession(null)
           setProfile(null)
+          setLoading(false)
         }
       }
     )
@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isMounted = false
       subscription.unsubscribe()
     }
-  }, [supabase, fetchProfile, createProfile])
+  }, [supabase, fetchProfile])
 
   const signUp = async (email: string, password: string, userData: SignUpData) => {
     const { data, error } = await supabase.auth.signUp({
@@ -187,15 +187,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) return { error }
 
-    // Set state immediately after login
+    // Fetch profile FIRST, then update all state together
+    // This prevents the UI from showing email before name loads
     if (data.user && data.session) {
+      const profileData = await fetchProfile(data.user.id)
+      setProfile(profileData)
       setUser(data.user)
       setSession(data.session)
-
-      // Fetch profile in background
-      fetchProfile(data.user.id).then(profileData => {
-        if (profileData) setProfile(profileData)
-      })
     }
 
     return { error: null }
