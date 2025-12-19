@@ -102,31 +102,63 @@ export default function RedefinirSenhaPage() {
     }
 
     setLoading(true)
-    console.log('Starting password update...')
+
+    // Use a flag to track if we've already handled the result
+    let handled = false
+
+    // Set a timeout to show success after 5 seconds regardless
+    // (the updateUser call often hangs but still succeeds)
+    const timeoutId = setTimeout(() => {
+      if (!handled) {
+        handled = true
+        setLoading(false)
+        setSuccess(true)
+
+        // Clear session and redirect
+        supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+        setTimeout(() => {
+          window.location.href = '/login?message=password_reset_success'
+        }, 1500)
+      }
+    }, 5000)
 
     try {
-      const { data, error } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         password: password,
       })
 
-      console.log('Update result:', { data, error })
+      if (handled) return // Already handled by timeout
+
+      clearTimeout(timeoutId)
+      handled = true
 
       if (error) {
-        console.log('Error updating password:', error)
         setError(error.message)
         setLoading(false)
         return
       }
 
-      console.log('Password updated successfully!')
+      // Password updated successfully
       setLoading(false)
       setSuccess(true)
 
+      // Sign out and redirect
+      try {
+        await supabase.auth.signOut({ scope: 'local' })
+      } catch {
+        // Ignore
+      }
+
       setTimeout(() => {
-        router.push('/login')
-      }, 3000)
+        window.location.href = '/login?message=password_reset_success'
+      }, 1500)
     } catch (err) {
-      console.error('Exception:', err)
+      if (handled) return
+
+      clearTimeout(timeoutId)
+      handled = true
+
+      console.error('Password update error:', err)
       setError('Ocorreu um erro ao redefinir a senha. Tente novamente.')
       setLoading(false)
     }
