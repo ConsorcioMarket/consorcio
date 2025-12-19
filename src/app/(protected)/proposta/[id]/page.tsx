@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -95,6 +95,7 @@ function getStatusDescription(status: ProposalStatus): string {
 export default function ProposalDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
+  const pathname = usePathname()
   const { user, loading: authLoading } = useAuth()
   const [proposal, setProposal] = useState<ProposalWithRelations | null>(null)
   const [history, setHistory] = useState<ProposalHistory[]>([])
@@ -184,7 +185,7 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
     if (user) {
       fetchProposal()
     }
-  }, [id, user, supabase])
+  }, [id, user, pathname])
 
   if (authLoading || loading) {
     return (

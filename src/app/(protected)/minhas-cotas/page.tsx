@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Eye, Pencil, Trash2, AlertCircle, Users, Clock, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -141,6 +141,7 @@ function ProposalIndicator({ proposals }: { proposals?: ProposalSummary }) {
 
 export default function MinhasCotasPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, loading: authLoading } = useAuth()
   const { addToast } = useToast()
   const [cotas, setCotas] = useState<CotaWithProposals[]>([])
@@ -233,8 +234,10 @@ export default function MinhasCotasPage() {
 
     if (user) {
       fetchCotas()
+    } else if (!authLoading) {
+      setLoading(false)
     }
-  }, [user, supabase])
+  }, [user, authLoading, pathname])
 
   const handleDeleteClick = (cota: Cota) => {
     setCotaToDelete(cota)

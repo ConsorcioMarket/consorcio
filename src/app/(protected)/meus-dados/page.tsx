@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { User, Building2, FileText, Save, Plus, Pencil, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -76,6 +76,7 @@ function getPJStatusVariant(status: PJStatus): 'default' | 'secondary' | 'destru
 
 export default function MeusDadosPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, profile, loading: authLoading, refreshProfile } = useAuth()
   const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState('pessoal')
@@ -179,7 +180,7 @@ export default function MeusDadosPage() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Cleanup state when user logs out
       setLoadingCompanies(false)
     }
-  }, [user, authLoading, supabase])
+  }, [user, authLoading, pathname])
 
   // Fetch PF documents
   useEffect(() => {
@@ -207,7 +208,7 @@ export default function MeusDadosPage() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Cleanup state when user logs out
       setLoadingDocuments(false)
     }
-  }, [user, authLoading, supabase])
+  }, [user, authLoading, pathname])
 
   const handlePfSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

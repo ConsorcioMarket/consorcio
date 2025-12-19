@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   Layers,
@@ -165,13 +165,14 @@ function StatusTimeline({ status }: { status: ProposalStatus }) {
 export default function ComposicaoPage() {
   const router = useRouter()
   const params = useParams()
+  const pathname = usePathname()
   const groupId = params.groupId as string
   const { user, loading: authLoading } = useAuth()
   const [proposals, setProposals] = useState<ProposalWithCota[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = createClient()
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -214,7 +215,7 @@ export default function ComposicaoPage() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Cleanup state when user logs out
       setLoading(false)
     }
-  }, [user, authLoading, groupId, supabase])
+  }, [user, authLoading, groupId, pathname])
 
   // Calculate totals
   const totals = useMemo(() => {

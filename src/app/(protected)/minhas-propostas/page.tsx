@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { FileText, Eye, AlertCircle, Clock, CheckCircle, XCircle, ArrowRight, FileCheck, CreditCard, Layers } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -262,12 +262,12 @@ function ProposalCard({
 
 export default function MinhasPropostasPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, loading: authLoading } = useAuth()
   const [proposals, setProposals] = useState<ProposalWithCota[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Memoize supabase client to avoid recreating on every render
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = createClient()
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -306,7 +306,7 @@ export default function MinhasPropostasPage() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Cleanup state when user logs out
       setLoading(false)
     }
-  }, [user, authLoading, supabase])
+  }, [user, authLoading, pathname])
 
   if (authLoading) {
     return (

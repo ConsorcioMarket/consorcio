@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, use, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Calculator, CheckCircle, AlertTriangle, FileText } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -51,6 +51,7 @@ function formatCurrencyInput(value: string | number): string {
 export default function EditarCotaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
+  const pathname = usePathname()
   const { user, loading: authLoading } = useAuth()
   const [cota, setCota] = useState<Cota | null>(null)
   const [loading, setLoading] = useState(true)
@@ -184,7 +185,7 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
     if (user) {
       fetchCota()
     }
-  }, [user, id, supabase])
+  }, [user, id, pathname])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

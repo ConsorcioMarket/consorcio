@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, User, Building2, CheckCircle, AlertTriangle, X, CheckCircle2, Circle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -17,6 +17,7 @@ import type { Cota, ProfilePJ, BuyerType } from '@/types/database'
 
 function ComposicaoCreditoContent() {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const cotaIdParam = searchParams.get('cota')
   const { addToast } = useToast()
@@ -130,7 +131,7 @@ function ComposicaoCreditoContent() {
       fetchCompanies()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
+  }, [user?.id, pathname])
 
   const handleSubmit = async () => {
     if (!user || cotas.length === 0) return
