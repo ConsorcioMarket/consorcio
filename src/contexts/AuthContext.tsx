@@ -77,19 +77,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Initialize auth state
     const init = async () => {
-      console.log('[Auth] Initializing...')
       try {
+        // First get session from cookies (fast, but might be stale)
         const { data: { session } } = await supabase.auth.getSession()
-        console.log('[Auth] getSession result:', session?.user?.email || 'no session')
 
         if (!isMounted) return
 
         if (session?.user) {
-          setUser(session.user)
+          // Verify the session is still valid by checking with server
+          const { data: { user: verifiedUser }, error } = await supabase.auth.getUser()
+
+          if (error || !verifiedUser) {
+            // Session is invalid - clear it
+            console.log('[Auth] Session invalid, clearing...')
+            await supabase.auth.signOut({ scope: 'local' })
+            if (isMounted) {
+              setUser(null)
+              setSession(null)
+              setProfile(null)
+              setLoading(false)
+            }
+            return
+          }
+
+          // Session is valid
+          setUser(verifiedUser)
           setSession(session)
 
-          const profileData = await fetchProfile(session.user.id)
-          console.log('[Auth] Profile fetched:', profileData?.full_name || 'no profile')
+          const profileData = await fetchProfile(verifiedUser.id)
           if (isMounted) {
             setProfile(profileData)
           }
@@ -98,7 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('[Auth] Init error:', error)
       } finally {
         if (isMounted) {
-          console.log('[Auth] Setting loading to false')
           setLoading(false)
         }
       }
@@ -109,7 +123,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('[Auth] onAuthStateChange:', event, session?.user?.email || 'no user')
         if (!isMounted) return
 
         setUser(session?.user ?? null)
@@ -117,12 +130,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (session?.user) {
           const profileData = await fetchProfile(session.user.id)
-          console.log('[Auth] Profile in onChange:', profileData?.full_name || 'no profile')
           if (isMounted) {
             if (profileData) {
               setProfile(profileData)
             } else if (event === 'SIGNED_IN') {
-              console.log('[Auth] Creating new profile...')
               const newProfile = await createProfile(session.user)
               setProfile(newProfile)
             }
