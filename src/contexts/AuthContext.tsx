@@ -104,12 +104,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Verify session validity in background (don't block UI)
         supabase.auth.getUser().then(({ error }) => {
           if (error && isMounted) {
-            // Session is invalid - clear it
-            supabase.auth.signOut({ scope: 'local' })
+            // Session is invalid - clear state locally (don't call signOut to avoid 403)
             setUser(null)
             setSession(null)
             setProfile(null)
           }
+        }).catch(() => {
+          // Ignore network errors during verification
         })
       } catch (error) {
         console.error('[Auth] Init error:', error)
