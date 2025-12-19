@@ -132,21 +132,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(session)
           setUser(user)
 
-          // Fetch profile
-          const { data: profileData } = await supabase
-            .from('profiles_pf')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle()
+          // Fetch profile with timeout to prevent hanging
+          try {
+            const profilePromise = supabase
+              .from('profiles_pf')
+              .select('*')
+              .eq('id', user.id)
+              .maybeSingle()
 
-          if (isMounted) {
-            if (profileData) {
-              setProfile(profileData as ProfilePF)
-            } else {
-              // Create profile if it doesn't exist
-              const newProfile = await createMissingProfile(user)
-              setProfile(newProfile)
+            const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) => {
+              setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 5000)
+            })
+
+            const { data: profileData } = await Promise.race([profilePromise, timeoutPromise])
+
+            if (isMounted) {
+              if (profileData) {
+                setProfile(profileData as ProfilePF)
+              } else {
+                // Create profile if it doesn't exist
+                const newProfile = await createMissingProfile(user)
+                setProfile(newProfile)
+              }
             }
+          } catch (err) {
+            console.error('Error fetching profile on init:', err)
           }
         }
       } catch (error) {
@@ -168,20 +178,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          // Fetch profile directly here to avoid stale closure issues
-          const { data: profileData } = await supabase
-            .from('profiles_pf')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle()
+          // Fetch profile with a timeout to prevent hanging
+          try {
+            const profilePromise = supabase
+              .from('profiles_pf')
+              .select('*')
+              .eq('id', session.user.id)
+              .maybeSingle()
 
-          if (isMounted) {
-            if (profileData) {
-              setProfile(profileData as ProfilePF)
-            } else {
-              const newProfile = await createMissingProfile(session.user)
-              setProfile(newProfile)
+            const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) => {
+              setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 5000)
+            })
+
+            const { data: profileData } = await Promise.race([profilePromise, timeoutPromise])
+
+            if (isMounted) {
+              if (profileData) {
+                setProfile(profileData as ProfilePF)
+              } else if (event === 'SIGNED_IN') {
+                // Only create profile on sign in, not on other events
+                const newProfile = await createMissingProfile(session.user)
+                setProfile(newProfile)
+              }
             }
+          } catch (err) {
+            console.error('Error fetching profile in auth change:', err)
           }
         } else {
           setProfile(null)

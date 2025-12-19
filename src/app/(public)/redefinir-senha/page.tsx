@@ -103,37 +103,34 @@ export default function RedefinirSenhaPage() {
 
     setLoading(true)
 
-    // Use a flag to track if we've already handled the result
-    let handled = false
-
-    // Set a timeout to show success after 5 seconds regardless
-    // (the updateUser call often hangs but still succeeds)
-    const timeoutId = setTimeout(() => {
-      if (!handled) {
-        handled = true
-        setLoading(false)
-        setSuccess(true)
-
-        // Clear session and redirect
-        supabase.auth.signOut({ scope: 'local' }).catch(() => {})
-        setTimeout(() => {
-          window.location.href = '/login?message=password_reset_success'
-        }, 1500)
-      }
-    }, 5000)
-
     try {
-      const { error } = await supabase.auth.updateUser({
+      // First verify we have a valid session
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+
+      if (!currentUser) {
+        setError('Sessão expirada. Por favor, solicite um novo link de recuperação.')
+        setLoading(false)
+        return
+      }
+
+      // Update the password
+      const { data, error } = await supabase.auth.updateUser({
         password: password,
       })
 
-      if (handled) return // Already handled by timeout
-
-      clearTimeout(timeoutId)
-      handled = true
-
       if (error) {
-        setError(error.message)
+        console.error('Password update error:', error)
+        if (error.message.includes('same_password')) {
+          setError('A nova senha deve ser diferente da senha atual.')
+        } else {
+          setError(error.message || 'Erro ao atualizar senha. Tente novamente.')
+        }
+        setLoading(false)
+        return
+      }
+
+      if (!data?.user) {
+        setError('Erro ao atualizar senha. Tente novamente.')
         setLoading(false)
         return
       }
@@ -142,23 +139,14 @@ export default function RedefinirSenhaPage() {
       setLoading(false)
       setSuccess(true)
 
-      // Sign out and redirect
-      try {
-        await supabase.auth.signOut({ scope: 'local' })
-      } catch {
-        // Ignore
-      }
+      // Sign out and redirect to login
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
 
       setTimeout(() => {
-        window.location.href = '/login?message=password_reset_success'
-      }, 1500)
+        window.location.href = '/login'
+      }, 2000)
     } catch (err) {
-      if (handled) return
-
-      clearTimeout(timeoutId)
-      handled = true
-
-      console.error('Password update error:', err)
+      console.error('Password update exception:', err)
       setError('Ocorreu um erro ao redefinir a senha. Tente novamente.')
       setLoading(false)
     }

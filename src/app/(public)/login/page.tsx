@@ -56,14 +56,15 @@ function LoginForm() {
         } else {
           setError(error.message)
         }
+        setLoading(false)
         return
       }
 
-      router.push(returnUrl)
-      router.refresh()
+      // Login successful - use window.location for a clean redirect
+      // This avoids issues with React Router and auth state race conditions
+      window.location.href = returnUrl
     } catch {
       setError('Ocorreu um erro ao fazer login. Tente novamente.')
-    } finally {
       setLoading(false)
     }
   }
