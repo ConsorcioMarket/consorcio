@@ -33,12 +33,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const supabase = createClient()
 
-  // Create profile for users who don't have one (legacy users or failed signups)
-  const createMissingProfile = useCallback(async (authUser: User) => {
+  // Fetch profile from database
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles_pf')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
+
+    return data as ProfilePF | null
+  }, [supabase])
+
+  // Create profile if missing
+  const createProfile = useCallback(async (authUser: User) => {
     const now = new Date().toISOString()
 
-    // First, try to insert the profile
-    const { error: insertError } = await supabase
+    await supabase
       .from('profiles_pf')
       .insert({
         id: authUser.id,
@@ -52,121 +62,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updated_at: now,
       })
 
-    // If insert failed (duplicate or other error), just fetch the existing profile
-    if (insertError) {
-      // Only log if it's not a duplicate key error
-      if (insertError.code !== '23505') {
-        console.error('Error inserting profile:', insertError)
-      }
-    }
-
-    // Always fetch the profile after insert attempt
-    const { data: profile, error: fetchError } = await supabase
-      .from('profiles_pf')
-      .select('*')
-      .eq('id', authUser.id)
-      .maybeSingle()
-
-    if (fetchError) {
-      console.error('Error fetching profile after create:', fetchError)
-      return null
-    }
-
-    return profile as ProfilePF | null
-  }, [supabase])
-
-  const fetchProfile = useCallback(async (userId: string, authUser?: User) => {
-    // Use maybeSingle() instead of single() to avoid errors when no row exists
-    const { data, error } = await supabase
-      .from('profiles_pf')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Error fetching profile:', error)
-      return null
-    }
-
-    // If profile doesn't exist and we have the auth user, create it
-    if (!data && authUser) {
-      console.log('Profile not found, creating one for user:', userId)
-      return await createMissingProfile(authUser)
-    }
-
-    return data as ProfilePF | null
-  }, [supabase, createMissingProfile])
+    return fetchProfile(authUser.id)
+  }, [supabase, fetchProfile])
 
   const refreshProfile = useCallback(async () => {
     if (user) {
-      const profileData = await fetchProfile(user.id, user)
-      setProfile(profileData)
+      const data = await fetchProfile(user.id)
+      setProfile(data)
     }
   }, [user, fetchProfile])
 
   useEffect(() => {
-    // Flag to prevent state updates after unmount
     let isMounted = true
 
-    const initializeAuth = async () => {
+    // Initialize auth state
+    const init = async () => {
       try {
-        // Use getUser() instead of getSession() - it validates the session with the server
-        // getSession() can return stale/cached data
-        // Add timeout to prevent hanging indefinitely
-        const getUserPromise = supabase.auth.getUser()
-        const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((resolve) => {
-          setTimeout(() => resolve({ data: { user: null }, error: new Error('Auth timeout') }), 10000)
-        })
+        const { data: { session } } = await supabase.auth.getSession()
 
-        const { data: { user }, error } = await Promise.race([getUserPromise, timeoutPromise])
+        if (!isMounted) return
 
-        // No user is normal for logged-out users - not an error
-        if (!user) {
-          console.log('Auth init: No user session', error?.message || '')
-          if (isMounted) {
-            setUser(null)
-            setSession(null)
-            setProfile(null)
-            setLoading(false)
-          }
-          return
-        }
-
-        if (user && isMounted) {
-          // Get the session for completeness
-          const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          setUser(session.user)
           setSession(session)
-          setUser(user)
 
-          // Fetch profile with timeout to prevent hanging
-          try {
-            const profilePromise = supabase
-              .from('profiles_pf')
-              .select('*')
-              .eq('id', user.id)
-              .maybeSingle()
-
-            const profileTimeoutPromise = new Promise<{ data: null; error: Error }>((resolve) => {
-              setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 3000)
-            })
-
-            const { data: profileData } = await Promise.race([profilePromise, profileTimeoutPromise])
-
-            if (isMounted) {
-              if (profileData) {
-                setProfile(profileData as ProfilePF)
-              } else {
-                // Create profile if it doesn't exist
-                const newProfile = await createMissingProfile(user)
-                setProfile(newProfile)
-              }
-            }
-          } catch (err) {
-            console.error('Error fetching profile on init:', err)
+          const profileData = await fetchProfile(session.user.id)
+          if (isMounted) {
+            setProfile(profileData)
           }
         }
       } catch (error) {
-        console.error('Error initializing auth:', error)
+        console.error('Auth init error:', error)
       } finally {
         if (isMounted) {
           setLoading(false)
@@ -174,41 +100,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    initializeAuth()
+    init()
 
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return
 
-        setSession(session)
         setUser(session?.user ?? null)
+        setSession(session)
 
         if (session?.user) {
-          // Fetch profile with a timeout to prevent hanging
-          try {
-            const profilePromise = supabase
-              .from('profiles_pf')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle()
-
-            const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) => {
-              setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 5000)
-            })
-
-            const { data: profileData } = await Promise.race([profilePromise, timeoutPromise])
-
-            if (isMounted) {
-              if (profileData) {
-                setProfile(profileData as ProfilePF)
-              } else if (event === 'SIGNED_IN') {
-                // Only create profile on sign in, not on other events
-                const newProfile = await createMissingProfile(session.user)
-                setProfile(newProfile)
-              }
+          const profileData = await fetchProfile(session.user.id)
+          if (isMounted) {
+            if (profileData) {
+              setProfile(profileData)
+            } else if (event === 'SIGNED_IN') {
+              const newProfile = await createProfile(session.user)
+              setProfile(newProfile)
             }
-          } catch (err) {
-            console.error('Error fetching profile in auth change:', err)
           }
         } else {
           setProfile(null)
@@ -222,95 +132,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isMounted = false
       subscription.unsubscribe()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [supabase, fetchProfile, createProfile])
 
   const signUp = async (email: string, password: string, userData: SignUpData) => {
-    try {
-      // First, create the auth user
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: userData.full_name,
-            cpf: userData.cpf || '',
-            phone: userData.phone,
-          },
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: userData.full_name,
+          cpf: userData.cpf || '',
+          phone: userData.phone,
         },
-      })
+      },
+    })
 
-      if (error) {
-        return { error }
-      }
+    if (error) return { error }
 
-      // If user was created successfully, keep them logged in
-      // The profile will be created by createMissingProfile when needed
-      // No need to sign out - user can continue using the app
-
-      return { error: null, user: data.user }
-    } catch (error) {
-      return { error: error as Error }
+    // Set state immediately after signup
+    if (data.user && data.session) {
+      setUser(data.user)
+      setSession(data.session)
     }
+
+    return { error: null }
   }
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) return { error }
+
+    // Set state immediately after login
+    if (data.user && data.session) {
+      setUser(data.user)
+      setSession(data.session)
+
+      // Fetch profile in background
+      fetchProfile(data.user.id).then(profileData => {
+        if (profileData) setProfile(profileData)
       })
-
-      if (error) {
-        return { error }
-      }
-
-      // Update local state immediately after successful login
-      // This ensures the user state is set before any redirect
-      if (data.user && data.session) {
-        setUser(data.user)
-        setSession(data.session)
-
-        // Fetch profile in background - don't wait for it
-        ;(async () => {
-          try {
-            const { data: profileData } = await supabase
-              .from('profiles_pf')
-              .select('*')
-              .eq('id', data.user!.id)
-              .maybeSingle()
-
-            if (profileData) {
-              setProfile(profileData as ProfilePF)
-            }
-          } catch {
-            // Profile fetch failed - will be handled by createMissingProfile
-          }
-        })()
-      }
-
-      return { error: null }
-    } catch (error) {
-      return { error: error as Error }
     }
+
+    return { error: null }
   }
 
   const signOut = async () => {
-    // Clear local state first for immediate UI update
     setUser(null)
     setSession(null)
     setProfile(null)
-
-    try {
-      // Use scope: 'local' to only clear the local session
-      // This is more reliable and avoids issues with global sign out
-      const { error } = await supabase.auth.signOut({ scope: 'local' })
-      if (error) {
-        console.error('Error signing out:', error)
-      }
-    } catch (error) {
-      console.error('Error signing out:', error)
-    }
+    await supabase.auth.signOut({ scope: 'local' })
   }
 
   const isAdmin = profile?.role === 'ADMIN'

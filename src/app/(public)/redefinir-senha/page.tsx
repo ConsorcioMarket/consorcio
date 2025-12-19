@@ -24,99 +24,46 @@ export default function RedefinirSenhaPage() {
 
   useEffect(() => {
     let isMounted = true
-    let timeoutId: NodeJS.Timeout
 
     const checkSession = async () => {
-      // Check if we have a hash fragment (Supabase recovery links use hash)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1))
-      const accessToken = hashParams.get('access_token')
-      const type = hashParams.get('type')
-
-      console.log('Hash params:', { hasAccessToken: !!accessToken, type })
-
-      // If we have recovery tokens in the hash, Supabase will process them automatically
-      // We need to wait for onAuthStateChange to fire
-
-      // Set up auth state listener
+      // Listen for auth events
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         (event, session) => {
-          console.log('Auth event:', event, 'Has session:', !!session)
-          if (isMounted) {
-            if (event === 'PASSWORD_RECOVERY' ||
-                (event === 'SIGNED_IN' && session) ||
-                (event === 'TOKEN_REFRESHED' && session) ||
-                (event === 'INITIAL_SESSION' && session)) {
-              console.log('Session detected via event:', event)
-              setIsValidSession(true)
-              setChecking(false)
-              // Clear the hash from URL for cleaner look
-              if (window.location.hash) {
-                window.history.replaceState(null, '', window.location.pathname)
-              }
+          if (!isMounted) return
+
+          if (event === 'PASSWORD_RECOVERY' || session) {
+            setIsValidSession(true)
+            setChecking(false)
+            // Clear hash from URL
+            if (window.location.hash) {
+              window.history.replaceState(null, '', window.location.pathname)
             }
           }
         }
       )
 
-      // If there's an access token in the hash, Supabase should process it
-      // Give it time to do so
-      if (accessToken && type === 'recovery') {
-        console.log('Recovery token found in hash, waiting for Supabase to process...')
-        // Supabase client will automatically pick up the tokens from the hash
-        // Wait longer for this to happen
-        timeoutId = setTimeout(() => {
-          if (isMounted && !isValidSession) {
-            console.log('Timeout reached after hash processing attempt')
-            setChecking(false)
-          }
-        }, 5000)
-        return () => subscription.unsubscribe()
-      }
-
-      // No hash tokens - check for existing session (redirect from callback)
-      // Small delay to let onAuthStateChange fire first
-      await new Promise(resolve => setTimeout(resolve, 200))
-
-      // Check for existing session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      console.log("getSession result:", { session: !!session, error: sessionError?.message })
-
+      // Check existing session
+      const { data: { session } } = await supabase.auth.getSession()
       if (session && isMounted) {
-        console.log('Session found via getSession')
         setIsValidSession(true)
         setChecking(false)
         return
       }
 
-      // Also try getUser as a fallback
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      console.log("getUser result:", { user: !!user, error: userError?.message })
-
-      if (user && isMounted) {
-        console.log('User found via getUser')
-        setIsValidSession(true)
-        setChecking(false)
-        return
-      }
-
-      // Give more time for session to be detected
-      timeoutId = setTimeout(() => {
-        if (isMounted) {
-          console.log('Timeout reached, no session found')
+      // Timeout for hash token processing
+      setTimeout(() => {
+        if (isMounted && !isValidSession) {
           setChecking(false)
         }
       }, 3000)
 
-      return () => {
-        subscription.unsubscribe()
-      }
+      return () => subscription.unsubscribe()
     }
 
     checkSession()
 
     return () => {
       isMounted = false
-      if (timeoutId) clearTimeout(timeoutId)
     }
   }, [supabase, isValidSession])
 
@@ -137,68 +84,26 @@ export default function RedefinirSenhaPage() {
     setLoading(true)
 
     try {
-      // First verify we have a valid session with timeout
-      const getUserPromise = supabase.auth.getUser()
-      const getUserTimeout = new Promise<{ data: { user: null }; error: Error }>((resolve) => {
-        setTimeout(() => resolve({ data: { user: null }, error: new Error('Timeout') }), 5000)
-      })
-
-      const { data: { user: currentUser } } = await Promise.race([getUserPromise, getUserTimeout])
-
-      if (!currentUser) {
-        setError('Sessão expirada. Por favor, solicite um novo link de recuperação.')
-        setLoading(false)
-        return
-      }
-
-      // Update the password with timeout
-      const updatePromise = supabase.auth.updateUser({
-        password: password,
-      })
-      const updateTimeout = new Promise<{ data: { user: null }; error: Error }>((resolve) => {
-        setTimeout(() => resolve({ data: { user: null }, error: new Error('Timeout - a senha pode ter sido atualizada. Tente fazer login.') }), 10000)
-      })
-
-      const { data, error } = await Promise.race([updatePromise, updateTimeout])
+      const { error } = await supabase.auth.updateUser({ password })
 
       if (error) {
-        console.error('Password update error:', error)
         if (error.message.includes('same_password')) {
           setError('A nova senha deve ser diferente da senha atual.')
-        } else if (error.message.includes('Timeout')) {
-          // Timeout - password might have been updated
-          setLoading(false)
-          setSuccess(true)
-          setTimeout(() => {
-            window.location.href = '/login'
-          }, 2000)
-          return
         } else {
-          setError(error.message || 'Erro ao atualizar senha. Tente novamente.')
+          setError(error.message || 'Erro ao atualizar senha.')
         }
         setLoading(false)
         return
       }
 
-      if (!data?.user) {
-        setError('Erro ao atualizar senha. Tente novamente.')
-        setLoading(false)
-        return
-      }
-
-      // Password updated successfully
-      setLoading(false)
       setSuccess(true)
-
-      // Sign out and redirect to login
-      await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+      await supabase.auth.signOut({ scope: 'local' })
 
       setTimeout(() => {
         window.location.href = '/login'
       }, 2000)
-    } catch (err) {
-      console.error('Password update exception:', err)
-      setError('Ocorreu um erro ao redefinir a senha. Tente novamente.')
+    } catch {
+      setError('Ocorreu um erro ao redefinir a senha.')
       setLoading(false)
     }
   }
@@ -246,7 +151,6 @@ export default function RedefinirSenhaPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
       <section className="bg-gradient-hero text-white py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center space-y-4">
@@ -260,7 +164,6 @@ export default function RedefinirSenhaPage() {
         </div>
       </section>
 
-      {/* Form Section */}
       <section className="section-light py-16">
         <div className="container mx-auto px-4">
           <Card className="max-w-md mx-auto bg-white shadow-lg border-0">
