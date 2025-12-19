@@ -36,7 +36,7 @@ interface UserStats {
 export function Header() {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, profile, isAdmin, signOut } = useAuth()
+  const { user, profile, isAdmin, signOut, loading: authLoading } = useAuth()
   const { items, totals, setIsOpen, clearCart } = useCart()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -209,7 +209,7 @@ export function Header() {
                 </span>
               </Button>
             )}
-            {mounted && user ? (
+            {mounted && !authLoading && user ? (
               <div className="flex items-center space-x-4">
                 {/* Admin Badge */}
                 {isAdmin && (
@@ -228,7 +228,7 @@ export function Header() {
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                   >
                     <User className="h-4 w-4" />
-                    <span>{profile?.full_name?.split(' ')[0] || 'Menu'}</span>
+                    <span>{profile?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Conta'}</span>
                     {userStats.pendingProposals > 0 && (
                       <span className="bg-yellow-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                         {userStats.pendingProposals}
@@ -330,7 +330,7 @@ export function Header() {
                   )}
                 </div>
               </div>
-            ) : (
+            ) : mounted && !authLoading ? (
               <>
                 <Link href="/login">
                   <Button variant="ghost" size="sm" className="text-white hover:bg-white hover:text-navy">
@@ -343,7 +343,7 @@ export function Header() {
                   </Button>
                 </Link>
               </>
-            )}
+            ) : null}
           </div>
 
           {/* Mobile Cart + Menu Button */}
@@ -400,7 +400,7 @@ export function Header() {
                 <FileText className="h-4 w-4" />
                 Cotas Disponíveis
               </Link>
-              {mounted && user ? (
+              {mounted && !authLoading && user ? (
                 <>
                   <Link
                     href="/publicar-cota"
