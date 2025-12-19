@@ -112,11 +112,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // Use getUser() instead of getSession() - it validates the session with the server
         // getSession() can return stale/cached data
-        const { data: { user }, error } = await supabase.auth.getUser()
+        // Add timeout to prevent hanging
+        const getUserPromise = supabase.auth.getUser()
+        const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((resolve) => {
+          setTimeout(() => resolve({ data: { user: null }, error: new Error('Auth timeout') }), 5000)
+        })
 
-        if (error) {
-          // Session is invalid or expired
-          console.log('Auth init: No valid session')
+        const { data: { user }, error } = await Promise.race([getUserPromise, timeoutPromise])
+
+        if (error || !user) {
+          // Session is invalid, expired, or timed out
+          console.log('Auth init: No valid session or timeout')
           if (isMounted) {
             setUser(null)
             setSession(null)
@@ -140,11 +146,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .eq('id', user.id)
               .maybeSingle()
 
-            const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) => {
-              setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 5000)
+            const profileTimeoutPromise = new Promise<{ data: null; error: Error }>((resolve) => {
+              setTimeout(() => resolve({ data: null, error: new Error('Timeout') }), 3000)
             })
 
-            const { data: profileData } = await Promise.race([profilePromise, timeoutPromise])
+            const { data: profileData } = await Promise.race([profilePromise, profileTimeoutPromise])
 
             if (isMounted) {
               if (profileData) {

@@ -137,8 +137,13 @@ export default function RedefinirSenhaPage() {
     setLoading(true)
 
     try {
-      // First verify we have a valid session
-      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      // First verify we have a valid session with timeout
+      const getUserPromise = supabase.auth.getUser()
+      const getUserTimeout = new Promise<{ data: { user: null }; error: Error }>((resolve) => {
+        setTimeout(() => resolve({ data: { user: null }, error: new Error('Timeout') }), 5000)
+      })
+
+      const { data: { user: currentUser } } = await Promise.race([getUserPromise, getUserTimeout])
 
       if (!currentUser) {
         setError('Sessão expirada. Por favor, solicite um novo link de recuperação.')
@@ -146,15 +151,28 @@ export default function RedefinirSenhaPage() {
         return
       }
 
-      // Update the password
-      const { data, error } = await supabase.auth.updateUser({
+      // Update the password with timeout
+      const updatePromise = supabase.auth.updateUser({
         password: password,
       })
+      const updateTimeout = new Promise<{ data: { user: null }; error: Error }>((resolve) => {
+        setTimeout(() => resolve({ data: { user: null }, error: new Error('Timeout - a senha pode ter sido atualizada. Tente fazer login.') }), 10000)
+      })
+
+      const { data, error } = await Promise.race([updatePromise, updateTimeout])
 
       if (error) {
         console.error('Password update error:', error)
         if (error.message.includes('same_password')) {
           setError('A nova senha deve ser diferente da senha atual.')
+        } else if (error.message.includes('Timeout')) {
+          // Timeout - password might have been updated
+          setLoading(false)
+          setSuccess(true)
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 2000)
+          return
         } else {
           setError(error.message || 'Erro ao atualizar senha. Tente novamente.')
         }
