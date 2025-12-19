@@ -105,8 +105,9 @@ export default function CadastroPage() {
         return
       }
 
-      // Redirect to login page after successful registration
-      router.push('/login')
+      // Registration successful - redirect to home page
+      // User is already logged in, no need to go to login page
+      window.location.href = '/'
     } catch {
       setError('Ocorreu um erro ao criar a conta. Tente novamente.')
     } finally {

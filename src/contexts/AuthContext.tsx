@@ -244,23 +244,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
       }
 
-      // If user was created successfully, create the profile manually
-      // Profile creation will be handled by createMissingProfile on first login
-      // This avoids race conditions and duplicate insert attempts
-      if (data.user) {
-        // Sign out after registration so user goes to login page cleanly
-        // The profile will be created when they log in via createMissingProfile
-        try {
-          await Promise.race([
-            supabase.auth.signOut({ scope: 'local' }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('SignOut timeout')), 3000))
-          ])
-        } catch {
-          // Ignore signOut errors - user will be redirected to login anyway
-        }
-      }
+      // If user was created successfully, keep them logged in
+      // The profile will be created by createMissingProfile when needed
+      // No need to sign out - user can continue using the app
 
-      return { error: null }
+      return { error: null, user: data.user }
     } catch (error) {
       return { error: error as Error }
     }
