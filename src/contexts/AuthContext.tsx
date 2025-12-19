@@ -256,12 +256,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      return { error }
+      if (error) {
+        return { error }
+      }
+
+      // Update local state immediately after successful login
+      // This ensures the user state is set before any redirect
+      if (data.user && data.session) {
+        setUser(data.user)
+        setSession(data.session)
+
+        // Fetch profile in background - don't wait for it
+        ;(async () => {
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles_pf')
+              .select('*')
+              .eq('id', data.user!.id)
+              .maybeSingle()
+
+            if (profileData) {
+              setProfile(profileData as ProfilePF)
+            }
+          } catch {
+            // Profile fetch failed - will be handled by createMissingProfile
+          }
+        })()
+      }
+
+      return { error: null }
     } catch (error) {
       return { error: error as Error }
     }
