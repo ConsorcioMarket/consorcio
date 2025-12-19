@@ -106,11 +106,7 @@ export default function CadastroPage() {
         return
       }
 
-      // Registration successful - sign out first so user must login manually
-      const supabase = (await import('@/lib/supabase/client')).createClient()
-      await supabase.auth.signOut({ scope: 'local' })
-
-      // Redirect to login page
+      // Registration successful - redirect to login page
       window.location.href = '/login'
     } catch {
       setError('Ocorreu um erro ao criar a conta. Tente novamente.')

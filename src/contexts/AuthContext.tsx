@@ -169,16 +169,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) return { error }
 
-    // Set state immediately after signup
+    // Create profile in database (don't update UI state - user must login manually)
     if (data.user) {
-      setUser(data.user)
-      if (data.session) {
-        setSession(data.session)
-      }
-
-      // Create profile immediately
-      const newProfile = await createProfile(data.user)
-      setProfile(newProfile)
+      await createProfile(data.user)
+      // Sign out immediately so user must login manually
+      await supabase.auth.signOut({ scope: 'local' })
     }
 
     return { error: null }
