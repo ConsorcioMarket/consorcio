@@ -112,17 +112,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // Use getUser() instead of getSession() - it validates the session with the server
         // getSession() can return stale/cached data
-        // Add timeout to prevent hanging
+        // Add timeout to prevent hanging indefinitely
         const getUserPromise = supabase.auth.getUser()
         const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((resolve) => {
-          setTimeout(() => resolve({ data: { user: null }, error: new Error('Auth timeout') }), 5000)
+          setTimeout(() => resolve({ data: { user: null }, error: new Error('Auth timeout') }), 10000)
         })
 
         const { data: { user }, error } = await Promise.race([getUserPromise, timeoutPromise])
 
-        if (error || !user) {
-          // Session is invalid, expired, or timed out
-          console.log('Auth init: No valid session or timeout')
+        // No user is normal for logged-out users - not an error
+        if (!user) {
+          console.log('Auth init: No user session', error?.message || '')
           if (isMounted) {
             setUser(null)
             setSession(null)

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, Suspense, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Eye, EyeOff } from 'lucide-react'
@@ -35,10 +35,16 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login')
 
-  const { signIn } = useAuth()
-  const router = useRouter()
+  const { signIn, user, loading: authLoading } = useAuth()
   const searchParams = useSearchParams()
   const returnUrl = searchParams.get('returnUrl') || '/'
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      window.location.href = returnUrl
+    }
+  }, [user, authLoading, returnUrl])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -98,7 +104,7 @@ function LoginForm() {
           </button>
           <button
             type="button"
-            onClick={() => router.push('/cadastro')}
+            onClick={() => window.location.href = '/cadastro'}
             className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
               activeTab === 'register'
                 ? 'bg-white text-gray-900 shadow-sm'
