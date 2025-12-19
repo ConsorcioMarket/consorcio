@@ -78,40 +78,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Initialize auth state
     const init = async () => {
       try {
-        // First get session from cookies (fast, but might be stale)
+        // Get session from cookies - trust it for immediate UI
         const { data: { session } } = await supabase.auth.getSession()
 
         if (!isMounted) return
 
-        if (session?.user) {
-          // Verify the session is still valid by checking with server
-          const { data: { user: verifiedUser }, error } = await supabase.auth.getUser()
+        // No session - user is not logged in
+        if (!session?.user) {
+          setLoading(false)
+          return
+        }
 
-          if (error || !verifiedUser) {
-            // Session is invalid - clear it
-            console.log('[Auth] Session invalid, clearing...')
-            await supabase.auth.signOut({ scope: 'local' })
-            if (isMounted) {
-              setUser(null)
-              setSession(null)
-              setProfile(null)
-              setLoading(false)
-            }
-            return
-          }
+        // Session exists - use it immediately for fast UI
+        setUser(session.user)
+        setSession(session)
+        setLoading(false)
 
-          // Session is valid
-          setUser(verifiedUser)
-          setSession(session)
-
-          const profileData = await fetchProfile(verifiedUser.id)
-          if (isMounted) {
+        // Fetch profile in background
+        fetchProfile(session.user.id).then(profileData => {
+          if (isMounted && profileData) {
             setProfile(profileData)
           }
-        }
+        })
+
+        // Verify session validity in background (don't block UI)
+        supabase.auth.getUser().then(({ error }) => {
+          if (error && isMounted) {
+            // Session is invalid - clear it
+            supabase.auth.signOut({ scope: 'local' })
+            setUser(null)
+            setSession(null)
+            setProfile(null)
+          }
+        })
       } catch (error) {
         console.error('[Auth] Init error:', error)
-      } finally {
         if (isMounted) {
           setLoading(false)
         }
@@ -127,22 +128,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setUser(session?.user ?? null)
         setSession(session)
+        setLoading(false) // Set loading false immediately - don't wait for profile
 
         if (session?.user) {
-          const profileData = await fetchProfile(session.user.id)
-          if (isMounted) {
+          // Fetch profile in background - don't block UI
+          fetchProfile(session.user.id).then(async (profileData) => {
+            if (!isMounted) return
             if (profileData) {
               setProfile(profileData)
             } else if (event === 'SIGNED_IN') {
               const newProfile = await createProfile(session.user)
-              setProfile(newProfile)
+              if (isMounted) setProfile(newProfile)
             }
-          }
+          })
         } else {
           setProfile(null)
         }
-
-        setLoading(false)
       }
     )
 

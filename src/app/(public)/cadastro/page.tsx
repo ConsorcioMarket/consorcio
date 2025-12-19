@@ -106,8 +106,8 @@ export default function CadastroPage() {
         return
       }
 
-      // Registration successful - redirect to success page
-      window.location.href = '/cadastro-sucesso'
+      // Registration successful - redirect to login page
+      window.location.href = '/login'
     } catch {
       setError('Ocorreu um erro ao criar a conta. Tente novamente.')
       setLoading(false)
