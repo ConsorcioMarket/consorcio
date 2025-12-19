@@ -102,15 +102,15 @@ export default function CadastroPage() {
         } else {
           setError(error.message)
         }
+        setLoading(false)
         return
       }
 
       // Registration successful - redirect to home page
-      // User is already logged in, no need to go to login page
+      // Don't set loading=false, keep showing "Criando conta..." until redirect
       window.location.href = '/'
     } catch {
       setError('Ocorreu um erro ao criar a conta. Tente novamente.')
-    } finally {
       setLoading(false)
     }
   }

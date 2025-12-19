@@ -77,8 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Initialize auth state
     const init = async () => {
+      console.log('[Auth] Initializing...')
       try {
         const { data: { session } } = await supabase.auth.getSession()
+        console.log('[Auth] getSession result:', session?.user?.email || 'no session')
 
         if (!isMounted) return
 
@@ -87,14 +89,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(session)
 
           const profileData = await fetchProfile(session.user.id)
+          console.log('[Auth] Profile fetched:', profileData?.full_name || 'no profile')
           if (isMounted) {
             setProfile(profileData)
           }
         }
       } catch (error) {
-        console.error('Auth init error:', error)
+        console.error('[Auth] Init error:', error)
       } finally {
         if (isMounted) {
+          console.log('[Auth] Setting loading to false')
           setLoading(false)
         }
       }
@@ -105,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[Auth] onAuthStateChange:', event, session?.user?.email || 'no user')
         if (!isMounted) return
 
         setUser(session?.user ?? null)
@@ -112,10 +117,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (session?.user) {
           const profileData = await fetchProfile(session.user.id)
+          console.log('[Auth] Profile in onChange:', profileData?.full_name || 'no profile')
           if (isMounted) {
             if (profileData) {
               setProfile(profileData)
             } else if (event === 'SIGNED_IN') {
+              console.log('[Auth] Creating new profile...')
               const newProfile = await createProfile(session.user)
               setProfile(newProfile)
             }
@@ -150,9 +157,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) return { error }
 
     // Set state immediately after signup
-    if (data.user && data.session) {
+    if (data.user) {
       setUser(data.user)
-      setSession(data.session)
+      if (data.session) {
+        setSession(data.session)
+      }
+
+      // Create profile immediately
+      const newProfile = await createProfile(data.user)
+      setProfile(newProfile)
     }
 
     return { error: null }

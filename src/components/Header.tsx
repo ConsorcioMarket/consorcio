@@ -141,7 +141,7 @@ export function Header() {
 
           {/* Desktop Navigation - Show nav links for logged-in users */}
           <nav className="hidden md:flex items-center space-x-1">
-            {mounted && user && !isAdmin && (
+            {mounted && !authLoading && user && !isAdmin && (
               <>
                 {userNavLinks.map((link) => {
                   const Icon = link.icon
@@ -164,7 +164,7 @@ export function Header() {
                 })}
               </>
             )}
-            {mounted && isAdmin && (
+            {mounted && !authLoading && isAdmin && (
               <>
                 {adminNavLinks.map((link) => {
                   const Icon = link.icon
