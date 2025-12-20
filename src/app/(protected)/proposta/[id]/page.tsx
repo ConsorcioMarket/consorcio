@@ -202,7 +202,7 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
   if (notFound) {
     return (
       <div className="min-h-screen bg-background">
-        <section className="bg-gradient-hero text-white py-16">
+        <section className="bg-gradient-hero text-white py-20">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
               <h1 className="text-4xl font-bold">Proposta não encontrada</h1>
@@ -231,7 +231,7 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
   if (notAllowed) {
     return (
       <div className="min-h-screen bg-background">
-        <section className="bg-gradient-hero text-white py-16">
+        <section className="bg-gradient-hero text-white py-20">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
               <h1 className="text-4xl font-bold">Acesso Negado</h1>
@@ -267,7 +267,7 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-hero text-white py-16">
+      <section className="bg-gradient-hero text-white py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <Link

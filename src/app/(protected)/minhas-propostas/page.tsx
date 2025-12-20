@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency, getProposalStatusLabel } from '@/lib/utils'
 import type { ProposalStatus, Cota } from '@/types/database'
 
@@ -323,7 +324,7 @@ export default function MinhasPropostasPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-hero text-white py-16">
+      <section className="bg-gradient-hero text-white py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center space-y-4">
             <h1 className="text-4xl md:text-5xl font-bold leading-tight">
@@ -362,8 +363,31 @@ export default function MinhasPropostasPage() {
               {!loading && proposals.length > 0 && <SummaryCards proposals={proposals} />}
 
               {loading ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">Carregando suas propostas...</p>
+                <div className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Card key={i} className="border">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Skeleton className="h-6 w-32" />
+                              <Skeleton className="h-5 w-20 rounded-full" />
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <Skeleton className="h-10 w-full" />
+                              <Skeleton className="h-10 w-full" />
+                              <Skeleton className="h-10 w-full" />
+                              <Skeleton className="h-10 w-full" />
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-3">
+                            <Skeleton className="h-6 w-40" />
+                            <Skeleton className="h-8 w-24" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               ) : proposals.length === 0 ? (
                 <div className="text-center py-12 bg-muted/30 rounded-lg">

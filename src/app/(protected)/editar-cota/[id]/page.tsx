@@ -269,7 +269,7 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
   if (notFound) {
     return (
       <div className="min-h-screen bg-background">
-        <section className="bg-gradient-hero text-white py-16">
+        <section className="bg-gradient-hero text-white py-20">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
               <h1 className="text-4xl font-bold">Cota não encontrada</h1>
@@ -298,7 +298,7 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
   if (notAllowed) {
     return (
       <div className="min-h-screen bg-background">
-        <section className="bg-gradient-hero text-white py-16">
+        <section className="bg-gradient-hero text-white py-20">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
               <h1 className="text-4xl font-bold">Edição não permitida</h1>
@@ -327,7 +327,7 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
   if (success) {
     return (
       <div className="min-h-screen bg-background">
-        <section className="bg-gradient-hero text-white py-16">
+        <section className="bg-gradient-hero text-white py-20">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
               <h1 className="text-4xl font-bold">Cota Atualizada!</h1>
@@ -368,7 +368,7 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-hero text-white py-16">
+      <section className="bg-gradient-hero text-white py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center space-y-4">
             <h1 className="text-4xl md:text-5xl font-bold leading-tight">

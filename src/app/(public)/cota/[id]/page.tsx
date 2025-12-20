@@ -81,7 +81,7 @@ export default function CotaDetailPage({ params }: { params: Promise<{ id: strin
   if (notFound || !cota) {
     return (
       <div className="min-h-screen bg-background">
-        <section className="bg-gradient-hero text-white py-16">
+        <section className="bg-gradient-hero text-white py-20">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center">
               <h1 className="text-4xl font-bold">Cota não encontrada</h1>
@@ -115,7 +115,7 @@ export default function CotaDetailPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-hero text-white py-16">
+      <section className="bg-gradient-hero text-white py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <Link
