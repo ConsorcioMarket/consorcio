@@ -87,21 +87,14 @@ export default function RedefinirSenhaPage() {
       const { error } = await supabase.auth.updateUser({ password })
 
       if (error) {
-        if (error.message.includes('same_password')) {
-          setError('A nova senha deve ser diferente da senha atual.')
-        } else {
-          setError(error.message || 'Erro ao atualizar senha.')
-        }
+        setError(error.message || 'Erro ao atualizar senha.')
         setLoading(false)
         return
       }
 
-      setSuccess(true)
+      // Sign out first, then redirect immediately
       await supabase.auth.signOut({ scope: 'local' })
-
-      setTimeout(() => {
-        window.location.href = '/login'
-      }, 2000)
+      window.location.href = '/login'
     } catch {
       setError('Ocorreu um erro ao redefinir a senha.')
       setLoading(false)
