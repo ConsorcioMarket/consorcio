@@ -25,11 +25,20 @@ interface SignUpData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+interface AuthState {
+  user: User | null
+  session: Session | null
+  profile: ProfilePF | null
+  loading: boolean
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [profile, setProfile] = useState<ProfilePF | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    session: null,
+    profile: null,
+    loading: true,
+  })
 
   const supabase = createClient()
 
@@ -70,11 +79,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, fetchProfile])
 
   const refreshProfile = useCallback(async () => {
-    if (user) {
-      const data = await fetchProfile(user.id)
-      setProfile(data)
+    if (authState.user) {
+      const data = await fetchProfile(authState.user.id)
+      setAuthState(prev => ({ ...prev, profile: data }))
     }
-  }, [user, fetchProfile])
+  }, [authState.user, fetchProfile])
 
   useEffect(() => {
     let isMounted = true
@@ -82,34 +91,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Initialize auth state
     const init = async () => {
       try {
-        // Get session from cookies - trust it for immediate UI
+        // Get session from cookies
         const { data: { session } } = await supabase.auth.getSession()
 
         if (!isMounted) return
 
         // No session - user is not logged in
         if (!session?.user) {
-          setLoading(false)
+          setAuthState(prev => ({ ...prev, loading: false }))
           return
         }
 
-        // Fetch profile FIRST before updating user state
-        // This prevents UI from showing "Conta" before name loads
-        const profileData = await fetchProfile(session.user.id)
-        if (!isMounted) return
+        // Set user immediately in single state update
+        setAuthState(prev => ({
+          ...prev,
+          user: session.user,
+          session: session,
+          loading: false,
+        }))
 
-        setProfile(profileData)
-        setUser(session.user)
-        setSession(session)
-        setLoading(false)
+        // Fetch profile in background
+        fetchProfile(session.user.id).then(profileData => {
+          if (isMounted && profileData) {
+            setAuthState(prev => ({ ...prev, profile: profileData }))
+          }
+        })
 
         // Verify session validity in background (don't block UI)
         supabase.auth.getUser().then(({ error }) => {
           if (error && isMounted) {
-            // Session is invalid - clear state locally (don't call signOut to avoid 403)
-            setUser(null)
-            setSession(null)
-            setProfile(null)
+            // Session is invalid - clear state locally
+            setAuthState({ user: null, session: null, profile: null, loading: false })
           }
         }).catch(() => {
           // Ignore network errors during verification
@@ -117,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('[Auth] Init error:', error)
         if (isMounted) {
-          setLoading(false)
+          setAuthState(prev => ({ ...prev, loading: false }))
         }
       }
     }
@@ -130,20 +142,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isMounted) return
 
         if (session?.user) {
-          // Fetch profile FIRST before updating user state
-          // This prevents UI from showing "Conta" before name loads
-          const profileData = await fetchProfile(session.user.id)
-          if (!isMounted) return
+          // Set user immediately in single state update
+          setAuthState(prev => ({
+            ...prev,
+            user: session.user,
+            session: session,
+            loading: false,
+          }))
 
-          setProfile(profileData)
-          setUser(session.user)
-          setSession(session)
-          setLoading(false)
+          // Fetch profile in background
+          fetchProfile(session.user.id).then(profileData => {
+            if (isMounted && profileData) {
+              setAuthState(prev => ({ ...prev, profile: profileData }))
+            }
+          })
         } else {
-          setUser(null)
-          setSession(null)
-          setProfile(null)
-          setLoading(false)
+          // Clear all state in single update
+          setAuthState({ user: null, session: null, profile: null, loading: false })
         }
       }
     )
@@ -194,21 +209,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    setUser(null)
-    setSession(null)
-    setProfile(null)
+    setAuthState({ user: null, session: null, profile: null, loading: false })
     await supabase.auth.signOut({ scope: 'local' })
   }
 
-  const isAdmin = profile?.role === 'ADMIN'
+  const isAdmin = authState.profile?.role === 'ADMIN'
 
   return (
     <AuthContext.Provider
       value={{
-        user,
-        session,
-        profile,
-        loading,
+        user: authState.user,
+        session: authState.session,
+        profile: authState.profile,
+        loading: authState.loading,
         isAdmin,
         signUp,
         signIn,
