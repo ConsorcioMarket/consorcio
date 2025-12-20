@@ -100,7 +100,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (isPasswordRecoveryUrl) {
           // Don't initialize user state for password recovery
-          setAuthState(prev => ({ ...prev, loading: false, isPasswordRecovery: true }))
+          setAuthState({
+            user: null,
+            session: null,
+            profile: null,
+            loading: false,
+            isPasswordRecovery: true,
+          })
           return
         }
 
@@ -159,6 +165,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === 'PASSWORD_RECOVERY') {
           setAuthState(prev => ({
             ...prev,
+            user: null,
+            session: null,
+            profile: null,
+            loading: false,
+            isPasswordRecovery: true,
+          }))
+          return
+        }
+
+        // Check if we're on password recovery page - don't set user state
+        const isPasswordRecoveryUrl = typeof window !== 'undefined' &&
+          window.location.pathname === '/redefinir-senha'
+
+        if (isPasswordRecoveryUrl) {
+          setAuthState(prev => ({
+            ...prev,
+            user: null,
+            session: null,
+            profile: null,
             loading: false,
             isPasswordRecovery: true,
           }))
