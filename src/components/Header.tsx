@@ -127,7 +127,7 @@ export function Header() {
   // Helper to check if a path is active
   const isActivePath = (href: string) => {
     if (href === '/cotas') {
-      return pathname === '/cotas' || pathname === '/' || pathname?.startsWith('/cota/')
+      return pathname === '/cotas' || pathname?.startsWith('/cota/')
     }
     return pathname === href || pathname?.startsWith(href + '/')
   }

@@ -30,6 +30,7 @@ interface AuthState {
   session: Session | null
   profile: ProfilePF | null
   loading: boolean
+  isPasswordRecovery: boolean
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session: null,
     profile: null,
     loading: true,
+    isPasswordRecovery: false,
   })
 
   const supabase = createClient()
@@ -91,6 +93,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Initialize auth state
     const init = async () => {
       try {
+        // Check if this is a password recovery URL
+        const isPasswordRecoveryUrl = typeof window !== 'undefined' &&
+          (window.location.pathname === '/redefinir-senha' ||
+           window.location.hash.includes('type=recovery'))
+
+        if (isPasswordRecoveryUrl) {
+          // Don't initialize user state for password recovery
+          setAuthState(prev => ({ ...prev, loading: false, isPasswordRecovery: true }))
+          return
+        }
+
         // Get session from cookies
         const { data: { session } } = await supabase.auth.getSession()
 
@@ -108,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           user: session.user,
           session: session,
           loading: false,
+          isPasswordRecovery: false,
         }))
 
         // Fetch profile in background
@@ -121,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         supabase.auth.getUser().then(({ error }) => {
           if (error && isMounted) {
             // Session is invalid - clear state locally
-            setAuthState({ user: null, session: null, profile: null, loading: false })
+            setAuthState({ user: null, session: null, profile: null, loading: false, isPasswordRecovery: false })
           }
         }).catch(() => {
           // Ignore network errors during verification
@@ -141,6 +155,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         if (!isMounted) return
 
+        // Handle password recovery - don't set user as logged in
+        if (event === 'PASSWORD_RECOVERY') {
+          setAuthState(prev => ({
+            ...prev,
+            loading: false,
+            isPasswordRecovery: true,
+          }))
+          return
+        }
+
         if (session?.user) {
           // Set user immediately in single state update
           setAuthState(prev => ({
@@ -148,6 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user: session.user,
             session: session,
             loading: false,
+            isPasswordRecovery: false,
           }))
 
           // Fetch profile in background
@@ -158,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           })
         } else {
           // Clear all state in single update
-          setAuthState({ user: null, session: null, profile: null, loading: false })
+          setAuthState({ user: null, session: null, profile: null, loading: false, isPasswordRecovery: false })
         }
       }
     )
@@ -209,7 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    setAuthState({ user: null, session: null, profile: null, loading: false })
+    setAuthState({ user: null, session: null, profile: null, loading: false, isPasswordRecovery: false })
     await supabase.auth.signOut({ scope: 'local' })
   }
 
