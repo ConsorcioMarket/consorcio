@@ -229,7 +229,7 @@ function ComposicaoCreditoContent() {
   if (!hasCotas) {
     return (
       <div className="min-h-screen bg-background">
-        <section className="bg-gradient-hero text-white py-20">
+        <section className="bg-gradient-hero text-white py-16">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center space-y-4">
               <h1 className="text-4xl md:text-5xl font-bold leading-tight">
@@ -265,7 +265,7 @@ function ComposicaoCreditoContent() {
   if (success) {
     return (
       <div className="min-h-screen bg-background">
-        <section className="bg-gradient-hero text-white py-20">
+        <section className="bg-gradient-hero text-white py-16">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto text-center space-y-4">
               <h1 className="text-4xl md:text-5xl font-bold leading-tight">
@@ -314,7 +314,7 @@ function ComposicaoCreditoContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="bg-gradient-hero text-white py-20">
+      <section className="bg-gradient-hero text-white py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center space-y-4">
             <h1 className="text-4xl md:text-5xl font-bold leading-tight">
@@ -462,7 +462,7 @@ function ComposicaoCreditoContent() {
                     </div>
 
                     <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex gap-3">
-                      <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                       <p className="text-sm text-yellow-800">
                         Valores exatos serão confirmados após análise e envio do extrato atualizado pelo vendedor.
                         {isMultiCota && ' As propostas serão agrupadas e só poderão ser pagas quando todas forem aprovadas.'}
@@ -588,7 +588,7 @@ function ComposicaoCreditoContent() {
                       {/* Warning when PJ is selected but no company chosen */}
                       {buyerType === 'PJ' && !selectedPJId && companies.length > 0 && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                           <p className="text-sm text-amber-800">
                             Selecione uma empresa acima para continuar com a proposta.
                           </p>

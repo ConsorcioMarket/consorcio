@@ -219,7 +219,7 @@ export function DocumentUpload({
       {/* Show rejection reason if rejected */}
       {existingDocument?.status === 'REJECTED' && existingDocument.rejection_reason && (
         <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-red-700">{existingDocument.rejection_reason}</p>
         </div>
       )}
@@ -359,7 +359,7 @@ export function DocumentList({
     <div className="space-y-6">
       {error && (
         <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-red-700">{error}</p>
           <button
             onClick={() => setError(null)}
