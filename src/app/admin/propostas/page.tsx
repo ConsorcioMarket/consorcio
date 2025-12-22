@@ -131,6 +131,7 @@ export default function AdminPropostasPage() {
     setProposals(transformedProposals)
     setTotalCount(count || 0)
     setLoading(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
   }, [pathname, page, statusFilter, searchTerm, sortOrder])
 
   useEffect(() => {

@@ -17,6 +17,7 @@ export function WhatsAppFloater({
   const { totals } = useCart()
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Required for hydration safety in Next.js
     setMounted(true)
   }, [])
 

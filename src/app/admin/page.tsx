@@ -50,6 +50,7 @@ export default function AdminDashboard() {
     }
 
     fetchStats()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
   }, [pathname])
 
   const statCards = [
@@ -106,7 +107,7 @@ export default function AdminDashboard() {
                         {loading ? '-' : card.value}
                       </p>
                     </div>
-                    <div className={`${card.color} p-4 rounded-xl flex-shrink-0`}>
+                    <div className={`${card.color} p-4 rounded-xl shrink-0`}>
                       <Icon className="h-7 w-7 text-white" />
                     </div>
                   </div>

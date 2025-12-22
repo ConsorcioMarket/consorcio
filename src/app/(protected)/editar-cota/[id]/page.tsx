@@ -185,6 +185,7 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
     if (user) {
       fetchCota()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
   }, [user, id, pathname])
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -237,6 +237,7 @@ export default function MinhasCotasPage() {
     } else if (!authLoading) {
       setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
   }, [user, authLoading, pathname])
 
   const handleDeleteClick = (cota: Cota) => {

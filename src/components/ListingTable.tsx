@@ -103,7 +103,7 @@ export function ListingTable({
   sortDirection,
   currentUserId,
 }: ListingTableProps) {
-  const { addItem, isInCart, canAddToCart, totals } = useCart()
+  const { addItem, isInCart, canAddToCart } = useCart()
   const { addToast } = useToast()
 
   const handleAddToCart = (listing: Cota, e: React.MouseEvent) => {

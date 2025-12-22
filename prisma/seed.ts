@@ -217,7 +217,8 @@ async function main() {
   const sellerId = await getOrCreateUser(testUsers.seller)
   const buyerPFId = await getOrCreateUser(testUsers.buyerPF)
   const buyerPFPendingId = await getOrCreateUser(testUsers.buyerPFPending)
-  const _buyerPFIncompleteId = await getOrCreateUser(testUsers.buyerPFIncomplete) // For demo purposes
+  // Create buyer with incomplete profile for demo purposes
+  await getOrCreateUser(testUsers.buyerPFIncomplete)
   const adminId = await getOrCreateUser(testUsers.admin)
 
   console.log('')

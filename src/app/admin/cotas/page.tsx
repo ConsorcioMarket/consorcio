@@ -138,6 +138,7 @@ export default function AdminCotasPage() {
     }
 
     fetchCotas()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
   }, [pathname, page, statusFilter, searchTerm])
 
   const handleStatusChange = (cota: CotaWithSeller, newStatus: CotaStatus) => {

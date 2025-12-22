@@ -139,7 +139,6 @@ export default function MeusDadosPage() {
   useEffect(() => {
     if (profile && !pfFormInitialized.current) {
       pfFormInitialized.current = true
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial form population from context
       setPfForm({
         full_name: profile.full_name || '',
         cpf: profile.cpf || '',
@@ -177,9 +176,9 @@ export default function MeusDadosPage() {
       fetchCompanies()
     } else if (!authLoading) {
       // User is not logged in and auth is done loading
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Cleanup state when user logs out
       setLoadingCompanies(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
   }, [user, authLoading, pathname])
 
   // Fetch PF documents
@@ -205,9 +204,9 @@ export default function MeusDadosPage() {
       fetchDocuments()
     } else if (!authLoading) {
       // User is not logged in and auth is done loading
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Cleanup state when user logs out
       setLoadingDocuments(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
   }, [user, authLoading, pathname])
 
   const handlePfSubmit = async (e: React.FormEvent) => {

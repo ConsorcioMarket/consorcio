@@ -212,9 +212,9 @@ export default function ComposicaoPage() {
       fetchProposals()
     } else if (!authLoading) {
       // User is not logged in and auth is done loading
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Cleanup state when user logs out
       setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
   }, [user, authLoading, groupId, pathname])
 
   // Calculate totals

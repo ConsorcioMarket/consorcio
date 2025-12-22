@@ -13,6 +13,7 @@ export function CartSummaryBar() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Required for hydration safety in Next.js
     setMounted(true)
   }, [])
 
@@ -61,7 +62,7 @@ export function CartSummaryBar() {
 
           <Button
             onClick={() => router.push('/composicao-credito')}
-            className="bg-secondary hover:bg-secondary/90 text-white flex-shrink-0"
+            className="bg-secondary hover:bg-secondary/90 text-white shrink-0"
           >
             <span className="hidden sm:inline">Fazer Proposta</span>
             <span className="sm:hidden">Proposta</span>

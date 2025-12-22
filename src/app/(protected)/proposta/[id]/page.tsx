@@ -185,6 +185,7 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
     if (user) {
       fetchProposal()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
   }, [id, user, pathname])
 
   if (authLoading || loading) {
