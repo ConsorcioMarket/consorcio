@@ -185,10 +185,19 @@ function ComposicaoCreditoContent() {
 
       if (insertError) {
         console.error('Error creating proposals:', insertError)
+        // Translate common Supabase errors to Portuguese
         if (insertError.code === '23505') {
           setError('Você já possui uma proposta para uma ou mais destas cotas.')
+        } else if (insertError.code === '42501' || insertError.message?.includes('permission denied')) {
+          setError('Permissão negada. Por favor, faça login novamente.')
+        } else if (insertError.code === '23503') {
+          setError('Erro de referência: uma das cotas pode ter sido removida. Por favor, atualize a página.')
+        } else if (insertError.code === 'PGRST301' || insertError.message?.includes('JWT')) {
+          setError('Sua sessão expirou. Por favor, faça login novamente.')
         } else {
-          setError('Erro ao criar proposta. Por favor, tente novamente.')
+          // Show actual error message for debugging, but in Portuguese format
+          const errorDetail = insertError.message || insertError.code || 'Erro desconhecido'
+          setError(`Erro ao criar proposta: ${errorDetail}`)
         }
         setSubmitting(false)
         return
@@ -208,7 +217,8 @@ function ComposicaoCreditoContent() {
       })
     } catch (err) {
       console.error('Error:', err)
-      setError('Erro ao criar proposta. Por favor, tente novamente.')
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido'
+      setError(`Erro ao criar proposta: ${errorMessage}`)
       setSubmitting(false)
     }
   }

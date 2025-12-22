@@ -1,13 +1,12 @@
 'use client'
 
-import { ArrowUpDown, Eye, Plus, Check, ShoppingCart } from 'lucide-react'
+import { ArrowUpDown, Eye, Plus, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -288,40 +287,6 @@ export function ListingTable({
             )
           })}
         </TableBody>
-        {/* Cart Totals Footer - only shown when there are items in cart */}
-        {totals.itemCount > 0 && (
-          <TableFooter className="bg-primary/10 sticky bottom-0">
-            <TableRow className="font-semibold hover:bg-primary/15">
-              <TableCell className="text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <ShoppingCart className="h-4 w-4 text-primary" />
-                  <span className="text-primary">Composição ({totals.itemCount})</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-center font-bold text-primary">
-                {formatCurrency(totals.totalCredit)}
-              </TableCell>
-              <TableCell className="text-center font-bold text-primary">
-                {formatCurrency(totals.totalBalance)}
-              </TableCell>
-              <TableCell className="text-center text-muted-foreground">-</TableCell>
-              <TableCell className="text-center text-muted-foreground">-</TableCell>
-              <TableCell className="text-center font-bold text-primary">
-                {formatCurrency(totals.totalEntry)}
-              </TableCell>
-              <TableCell className="text-center font-bold text-primary">
-                {formatPercentage(totals.combinedEntryPercentage)}
-              </TableCell>
-              <TableCell className="text-center text-muted-foreground">-</TableCell>
-              <TableCell className="text-center">
-                <Badge variant="success" className="text-xs">
-                  {totals.itemCount} {totals.itemCount === 1 ? 'cota' : 'cotas'}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-center"></TableCell>
-            </TableRow>
-          </TableFooter>
-        )}
       </Table>
     </div>
   )

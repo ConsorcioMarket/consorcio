@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import { FileText, Search, Filter, Check, X, AlertCircle, ExternalLink, Eye, ArrowUpDown } from 'lucide-react'
+import { FileText, Search, Filter, Check, X, AlertCircle, ExternalLink, Eye, ArrowUpDown, Edit } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,9 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Pagination } from '@/components/ui/pagination'
 import { getDocumentStatusLabel, getDocumentTypeLabel } from '@/lib/utils'
-import type { DocumentStatus, OwnerType, DocumentType } from '@/types/database'
+import type { DocumentStatus, OwnerType, DocumentType, Cota } from '@/types/database'
+import { formatCurrency } from '@/lib/utils'
+import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -84,6 +86,26 @@ export default function AdminDocumentosPage() {
     loadingUrl: boolean
   }>({ open: false, document: null, signedUrl: null, loadingUrl: false })
 
+  // Cota edit dialog (for COTA type documents)
+  const [cotaEditDialog, setCotaEditDialog] = useState<{
+    open: boolean
+    document: DocumentWithOwner | null
+    cota: Cota | null
+    signedUrl: string | null
+    loadingCota: boolean
+    loadingUrl: boolean
+  }>({ open: false, document: null, cota: null, signedUrl: null, loadingCota: false, loadingUrl: false })
+  const [cotaFormData, setCotaFormData] = useState({
+    administrator: '',
+    credit_amount: '',
+    outstanding_balance: '',
+    n_installments: '',
+    installment_value: '',
+    entry_amount: '',
+  })
+  const [savingCota, setSavingCota] = useState(false)
+  const [cotaSaveError, setCotaSaveError] = useState<string | null>(null)
+
   const supabase = createClient()
 
   // Get bucket name from owner type
@@ -108,14 +130,23 @@ export default function AdminDocumentosPage() {
     }
   }
 
+  // Check if URL is a valid Supabase Storage URL
+  const isSupabaseStorageUrl = (url: string): boolean => {
+    return url.includes('supabase.co/storage') || url.includes('/object/public/')
+  }
+
   // Generate signed URL for private bucket access
   const getSignedUrl = async (doc: DocumentWithOwner): Promise<string | null> => {
+    // If not a Supabase Storage URL, return the original URL
+    if (!isSupabaseStorageUrl(doc.file_url)) {
+      return doc.file_url
+    }
+
     const bucketName = getBucketName(doc.owner_type)
     const filePath = getFilePathFromUrl(doc.file_url, bucketName)
 
     if (!filePath) {
-      console.error('Could not extract file path from URL:', doc.file_url)
-      return null
+      return doc.file_url // Fallback to original URL
     }
 
     const { data, error } = await supabase.storage
@@ -124,7 +155,7 @@ export default function AdminDocumentosPage() {
 
     if (error) {
       console.error('Error creating signed URL:', error)
-      return null
+      return doc.file_url // Fallback to original URL
     }
 
     return data.signedUrl
@@ -137,6 +168,94 @@ export default function AdminDocumentosPage() {
     // Try to get a signed URL in case the bucket is private
     const signedUrl = await getSignedUrl(doc)
     setPreviewDialog(prev => ({ ...prev, signedUrl, loadingUrl: false }))
+  }
+
+  // Handle opening document in new tab with signed URL
+  const handleOpenInNewTab = async (doc: DocumentWithOwner) => {
+    const signedUrl = await getSignedUrl(doc)
+    if (signedUrl) {
+      window.open(signedUrl, '_blank')
+    } else {
+      // fallback: try public URL
+      window.open(doc.file_url, '_blank')
+    }
+  }
+
+  // Handle opening cota edit dialog
+  const handleOpenCotaEdit = async (doc: DocumentWithOwner) => {
+    if (doc.owner_type !== 'COTA') return
+
+    setCotaEditDialog({
+      open: true,
+      document: doc,
+      cota: null,
+      signedUrl: null,
+      loadingCota: true,
+      loadingUrl: true,
+    })
+    setCotaSaveError(null)
+
+    // Fetch cota data and signed URL in parallel
+    const [cotaResult, signedUrl] = await Promise.all([
+      supabase.from('cotas').select('*').eq('id', doc.owner_id).single(),
+      getSignedUrl(doc),
+    ])
+
+    if (cotaResult.data) {
+      setCotaFormData({
+        administrator: cotaResult.data.administrator || '',
+        credit_amount: cotaResult.data.credit_amount?.toString() || '',
+        outstanding_balance: cotaResult.data.outstanding_balance?.toString() || '',
+        n_installments: cotaResult.data.n_installments?.toString() || '',
+        installment_value: cotaResult.data.installment_value?.toString() || '',
+        entry_amount: cotaResult.data.entry_amount?.toString() || '',
+      })
+    }
+
+    setCotaEditDialog(prev => ({
+      ...prev,
+      cota: cotaResult.data,
+      signedUrl,
+      loadingCota: false,
+      loadingUrl: false,
+    }))
+  }
+
+  // Handle saving cota changes
+  const handleSaveCota = async () => {
+    if (!cotaEditDialog.cota) return
+
+    setSavingCota(true)
+    setCotaSaveError(null)
+
+    try {
+      const response = await fetch(`/api/cotas/${cotaEditDialog.cota.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          administrator: cotaFormData.administrator,
+          credit_amount: parseFloat(cotaFormData.credit_amount) || 0,
+          outstanding_balance: parseFloat(cotaFormData.outstanding_balance) || 0,
+          n_installments: parseInt(cotaFormData.n_installments) || 0,
+          installment_value: parseFloat(cotaFormData.installment_value) || 0,
+          entry_amount: parseFloat(cotaFormData.entry_amount) || 0,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao salvar alterações')
+      }
+
+      // Close dialog and refresh documents list
+      setCotaEditDialog({ open: false, document: null, cota: null, signedUrl: null, loadingCota: false, loadingUrl: false })
+      await fetchDocuments()
+    } catch (error) {
+      console.error('Error saving cota:', error)
+      setCotaSaveError(error instanceof Error ? error.message : 'Erro ao salvar alterações')
+    } finally {
+      setSavingCota(false)
+    }
   }
 
   const fetchDocuments = useCallback(async () => {
@@ -415,11 +534,24 @@ export default function AdminDocumentosPage() {
                             <Eye className="h-4 w-4" />
                           </Button>
                           {doc.file_url && (
-                            <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                              <Button variant="outline" size="sm">
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                            </a>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenInNewTab(doc)}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {doc.owner_type === 'COTA' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => handleOpenCotaEdit(doc)}
+                              title="Editar valores da cota"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                           )}
                           {doc.status === 'UNDER_REVIEW' && (
                             <>
@@ -645,6 +777,212 @@ export default function AdminDocumentosPage() {
                   })()}
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cota Edit Dialog */}
+      <Dialog open={cotaEditDialog.open} onOpenChange={(open) => {
+        if (!open) setCotaEditDialog({ open: false, document: null, cota: null, signedUrl: null, loadingCota: false, loadingUrl: false })
+      }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Editar Valores da Cota
+            </DialogTitle>
+            <DialogDescription>
+              Visualize o extrato e atualize os valores da cota conforme necessário
+            </DialogDescription>
+          </DialogHeader>
+
+          {cotaEditDialog.loadingCota || cotaEditDialog.loadingUrl ? (
+            <div className="text-center py-8">
+              <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
+              <p className="mt-2 text-muted-foreground">Carregando dados...</p>
+            </div>
+          ) : cotaEditDialog.cota && cotaEditDialog.document ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left: Document Preview */}
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <h3 className="font-medium mb-3 text-sm text-muted-foreground">
+                  Extrato: {cotaEditDialog.document.file_name}
+                </h3>
+                {cotaEditDialog.signedUrl ? (
+                  (() => {
+                    const isImage = cotaEditDialog.document.file_name.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                    const isPdf = cotaEditDialog.document.file_name.match(/\.pdf$/i)
+
+                    if (isImage) {
+                      return (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={cotaEditDialog.signedUrl}
+                          alt={cotaEditDialog.document.file_name}
+                          className="max-w-full max-h-[500px] mx-auto"
+                        />
+                      )
+                    } else if (isPdf) {
+                      return (
+                        <iframe
+                          src={cotaEditDialog.signedUrl}
+                          className="w-full h-[500px]"
+                          title={cotaEditDialog.document.file_name}
+                        />
+                      )
+                    } else {
+                      return (
+                        <div className="text-center py-8">
+                          <FileText className="h-12 w-12 mx-auto text-gray-400" />
+                          <p className="mt-2 text-muted-foreground">Pré-visualização não disponível</p>
+                          <a
+                            href={cotaEditDialog.signedUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 mt-4 text-primary hover:underline"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Abrir em nova aba
+                          </a>
+                        </div>
+                      )
+                    }
+                  })()
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Não foi possível carregar o documento
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Edit Form */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-sm text-muted-foreground">Valores Atuais da Cota</h3>
+
+                {cotaSaveError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    {cotaSaveError}
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="administrator">Administradora</Label>
+                    <Input
+                      id="administrator"
+                      value={cotaFormData.administrator}
+                      onChange={(e) => setCotaFormData(prev => ({ ...prev, administrator: e.target.value }))}
+                      disabled={savingCota}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="credit_amount">Valor do Crédito (R$)</Label>
+                      <Input
+                        id="credit_amount"
+                        type="number"
+                        step="0.01"
+                        value={cotaFormData.credit_amount}
+                        onChange={(e) => setCotaFormData(prev => ({ ...prev, credit_amount: e.target.value }))}
+                        disabled={savingCota}
+                      />
+                      {cotaEditDialog.cota && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Atual: {formatCurrency(cotaEditDialog.cota.credit_amount)}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="entry_amount">Entrada (R$)</Label>
+                      <Input
+                        id="entry_amount"
+                        type="number"
+                        step="0.01"
+                        value={cotaFormData.entry_amount}
+                        onChange={(e) => setCotaFormData(prev => ({ ...prev, entry_amount: e.target.value }))}
+                        disabled={savingCota}
+                      />
+                      {cotaEditDialog.cota && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Atual: {formatCurrency(cotaEditDialog.cota.entry_amount)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="outstanding_balance">Saldo Devedor (R$)</Label>
+                      <Input
+                        id="outstanding_balance"
+                        type="number"
+                        step="0.01"
+                        value={cotaFormData.outstanding_balance}
+                        onChange={(e) => setCotaFormData(prev => ({ ...prev, outstanding_balance: e.target.value }))}
+                        disabled={savingCota}
+                      />
+                      {cotaEditDialog.cota && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Atual: {formatCurrency(cotaEditDialog.cota.outstanding_balance)}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="installment_value">Valor da Parcela (R$)</Label>
+                      <Input
+                        id="installment_value"
+                        type="number"
+                        step="0.01"
+                        value={cotaFormData.installment_value}
+                        onChange={(e) => setCotaFormData(prev => ({ ...prev, installment_value: e.target.value }))}
+                        disabled={savingCota}
+                      />
+                      {cotaEditDialog.cota && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Atual: {formatCurrency(cotaEditDialog.cota.installment_value)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="n_installments">Número de Parcelas</Label>
+                    <Input
+                      id="n_installments"
+                      type="number"
+                      value={cotaFormData.n_installments}
+                      onChange={(e) => setCotaFormData(prev => ({ ...prev, n_installments: e.target.value }))}
+                      disabled={savingCota}
+                    />
+                    {cotaEditDialog.cota && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Atual: {cotaEditDialog.cota.n_installments}x
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <DialogFooter className="mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCotaEditDialog({ open: false, document: null, cota: null, signedUrl: null, loadingCota: false, loadingUrl: false })}
+                    disabled={savingCota}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSaveCota} disabled={savingCota}>
+                    {savingCota ? 'Salvando...' : 'Salvar Alterações'}
+                  </Button>
+                </DialogFooter>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              Erro ao carregar dados da cota
             </div>
           )}
         </DialogContent>

@@ -4,6 +4,17 @@ import type { CotaStatus } from '@/types/database'
 
 const VALID_STATUSES: CotaStatus[] = ['AVAILABLE', 'RESERVED', 'SOLD', 'REMOVED']
 
+// Numeric fields that can be updated by admin
+const NUMERIC_FIELDS = [
+  'credit_amount',
+  'outstanding_balance',
+  'n_installments',
+  'installment_value',
+  'entry_amount',
+  'entry_percentage',
+  'monthly_rate',
+]
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -11,15 +22,7 @@ export async function PATCH(
   try {
     const { id } = await params
     const body = await request.json()
-    const { status } = body
-
-    // Validate status
-    if (!status || !VALID_STATUSES.includes(status)) {
-      return NextResponse.json(
-        { error: 'Status inválido' },
-        { status: 400 }
-      )
-    }
+    const { status, ...otherFields } = body
 
     const supabase = await createClient()
 
@@ -41,7 +44,7 @@ export async function PATCH(
 
     if (profile?.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: 'Acesso negado. Apenas administradores podem alterar status.' },
+        { error: 'Acesso negado. Apenas administradores podem alterar cotas.' },
         { status: 403 }
       )
     }
@@ -49,7 +52,7 @@ export async function PATCH(
     // Get current cota
     const { data: cota, error: cotaError } = await supabase
       .from('cotas')
-      .select('status')
+      .select('*')
       .eq('id', id)
       .single()
 
@@ -60,45 +63,86 @@ export async function PATCH(
       )
     }
 
-    // Don't update if status is the same
-    if (cota.status === status) {
+    // Build update object
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    }
+    const changes: { field: string; oldValue: string | null; newValue: string }[] = []
+
+    // Handle status change
+    if (status && VALID_STATUSES.includes(status) && cota.status !== status) {
+      updateData.status = status
+      changes.push({
+        field: 'status',
+        oldValue: cota.status,
+        newValue: status,
+      })
+    }
+
+    // Handle numeric field changes
+    for (const field of NUMERIC_FIELDS) {
+      if (field in otherFields && otherFields[field] !== undefined) {
+        const newValue = Number(otherFields[field])
+        const oldValue = cota[field as keyof typeof cota] as number | null
+
+        if (!isNaN(newValue) && oldValue !== newValue) {
+          updateData[field] = newValue
+          changes.push({
+            field,
+            oldValue: oldValue?.toString() ?? null,
+            newValue: newValue.toString(),
+          })
+        }
+      }
+    }
+
+    // Handle administrator change
+    if (otherFields.administrator && otherFields.administrator !== cota.administrator) {
+      updateData.administrator = otherFields.administrator
+      changes.push({
+        field: 'administrator',
+        oldValue: cota.administrator,
+        newValue: otherFields.administrator,
+      })
+    }
+
+    // If no changes, return early
+    if (changes.length === 0) {
       return NextResponse.json(
-        { message: 'Status já está definido como ' + status },
+        { message: 'Nenhuma alteração detectada' },
         { status: 200 }
       )
     }
 
-    // Update cota status
+    // Update cota
     const { error: updateError } = await supabase
       .from('cotas')
-      .update({
-        status,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', id)
 
     if (updateError) {
-      console.error('Error updating cota status:', updateError)
+      console.error('Error updating cota:', updateError)
       return NextResponse.json(
-        { error: 'Erro ao atualizar status da cota' },
+        { error: 'Erro ao atualizar cota' },
         { status: 500 }
       )
     }
 
-    // Track change in cota_history
-    await supabase.from('cota_history').insert({
+    // Track all changes in cota_history
+    const historyEntries = changes.map(change => ({
       cota_id: id,
-      field_changed: 'status',
-      old_value: cota.status,
-      new_value: status,
+      field_changed: change.field,
+      old_value: change.oldValue,
+      new_value: change.newValue,
       changed_by: user.id,
-    })
+    }))
+
+    await supabase.from('cota_history').insert(historyEntries)
 
     return NextResponse.json({
       success: true,
-      message: `Status alterado de ${cota.status} para ${status}`,
-      oldStatus: cota.status,
-      newStatus: status,
+      message: `${changes.length} campo(s) atualizado(s)`,
+      changes,
     })
   } catch (error) {
     console.error('Error in PATCH /api/cotas/[id]:', error)

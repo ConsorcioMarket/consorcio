@@ -247,11 +247,18 @@ export default function MeusDadosPage() {
     console.log('Update result - data:', data, 'error:', error)
 
     if (error) {
-      setPfError('Erro ao salvar dados. Por favor, tente novamente.')
+      // Translate common Supabase errors to Portuguese
+      if (error.code === '42501' || error.message?.includes('permission denied')) {
+        setPfError('Permissão negada. Por favor, faça logout e login novamente.')
+      } else if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+        setPfError('Sua sessão expirou. Por favor, faça logout e login novamente.')
+      } else {
+        setPfError(`Erro ao salvar dados: ${error.message || error.code || 'Erro desconhecido'}`)
+      }
       console.error('Error updating profile:', error)
     } else if (!data || data.length === 0) {
-      setPfError('Não foi possível atualizar o perfil. Tente fazer logout e login novamente.')
-      console.error('No rows updated - possible RLS issue')
+      setPfError('Não foi possível atualizar o perfil. Sua sessão pode ter expirado. Faça logout e login novamente.')
+      console.error('No rows updated - possible RLS issue. User ID:', user.id)
     } else {
       setPfSuccess(true)
       setPfEditing(false) // Exit edit mode after successful save
@@ -352,8 +359,12 @@ export default function MeusDadosPage() {
     if (error) {
       if (error.code === '23505') {
         setPjError('Já existe uma empresa cadastrada com este CNPJ.')
+      } else if (error.code === '42501' || error.message?.includes('permission denied')) {
+        setPjError('Permissão negada. Por favor, faça logout e login novamente.')
+      } else if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+        setPjError('Sua sessão expirou. Por favor, faça logout e login novamente.')
       } else {
-        setPjError('Erro ao salvar empresa. Por favor, tente novamente.')
+        setPjError(`Erro ao salvar empresa: ${error.message || error.code || 'Erro desconhecido'}`)
       }
       console.error('Error saving PJ:', error)
     } else {
