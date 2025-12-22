@@ -69,10 +69,11 @@ export function CartDrawer() {
                   >
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+                      className="absolute top-2 right-2 p-2 text-gray-400 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 hover:scale-110"
                       title="Remover"
+                      aria-label="Remover cota"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-5 w-5" />
                     </button>
 
                     <div className="pr-6">

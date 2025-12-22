@@ -232,17 +232,18 @@ export function ListingTable({
                   </Badge>
                 </TableCell>
                 <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex items-center justify-center gap-1 sm:gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="transition-all duration-200 hover:scale-110"
+                      className="h-10 w-10 p-0 transition-all duration-200 hover:scale-110"
                       onClick={(e) => {
                         e.stopPropagation()
                         onViewDetails(listing)
                       }}
+                      aria-label="Ver detalhes"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-5 w-5" />
                     </Button>
                     {!isMine && !isReserved && (
                       <>
@@ -255,24 +256,25 @@ export function ListingTable({
                           <Button
                             size="sm"
                             variant={canAdd ? 'outline' : 'ghost'}
-                            className="transition-all duration-200 hover:scale-105 press-effect"
+                            className="h-10 px-3 transition-all duration-200 hover:scale-105 press-effect"
                             onClick={(e) => handleAddToCart(listing, e)}
                             disabled={!canAdd}
                             title={canAdd ? 'Adicionar à composição' : 'Não é possível adicionar'}
                           >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Compor
+                            <Plus className="h-5 w-5 sm:mr-1" />
+                            <span className="hidden sm:inline">Compor</span>
                           </Button>
                         )}
                         <Button
                           size="sm"
-                          className="bg-secondary hover:bg-secondary/90 text-white transition-all duration-200 hover:scale-105 press-effect"
+                          className="h-10 px-3 bg-secondary hover:bg-secondary/90 text-white transition-all duration-200 hover:scale-105 press-effect"
                           onClick={(e) => {
                             e.stopPropagation()
                             onInterest(listing.id)
                           }}
                         >
-                          Interesse
+                          <span className="hidden sm:inline">Interesse</span>
+                          <span className="sm:hidden">+</span>
                         </Button>
                       </>
                     )}

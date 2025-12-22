@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useCart } from '@/contexts/CartContext'
 
 interface WhatsAppFloaterProps {
   phoneNumber: string // Format: 5511999999999 (country code + number, no spaces or dashes)
@@ -12,16 +13,26 @@ export function WhatsAppFloater({
   message = 'Olá! Gostaria de mais informações sobre as cotas de consórcio.',
 }: WhatsAppFloaterProps) {
   const [isHovered, setIsHovered] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const { totals } = useCart()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Using api.whatsapp.com for better compatibility across browsers and devices
   const whatsappUrl = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`
+
+  // Move floater up when cart bar is visible (cart bar height is ~60px)
+  const hasCartItems = mounted && totals.itemCount > 0
+  const bottomPosition = hasCartItems ? 'bottom-20' : 'bottom-6'
 
   return (
     <a
       href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-50 group"
+      className={`fixed ${bottomPosition} right-6 z-50 group transition-all duration-300`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       aria-label="Fale conosco pelo WhatsApp"

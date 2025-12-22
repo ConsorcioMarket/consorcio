@@ -349,21 +349,21 @@ export function Header() {
           {/* Mobile Cart + Menu Button */}
           <div className="md:hidden flex items-center gap-2">
             {mounted && items.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
+              <button
                 onClick={() => setIsOpen(true)}
-                className="relative border-gray-600 text-white hover:bg-white/10"
+                className="relative p-3 text-white rounded-lg hover:bg-white/10 transition-colors"
+                aria-label="Ver carrinho de compras"
               >
-                <ShoppingCart className="h-4 w-4" />
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <ShoppingCart className="h-6 w-6" />
+                <span className="absolute top-1 right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                   {items.length}
                 </span>
-              </Button>
+              </button>
             )}
             <button
-              className="p-2 text-white"
+              className="p-3 text-white rounded-lg hover:bg-white/10 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
             >
               {mobileMenuOpen ? (
                 <X className="h-6 w-6" />
@@ -377,27 +377,27 @@ export function Header() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-700 animate-fade-in-down">
-            <nav className="flex flex-col space-y-4 animate-stagger">
+            <nav className="flex flex-col space-y-1 animate-stagger">
               <Link
                 href="/"
                 className={cn(
-                  "flex items-center gap-2 text-sm font-medium",
-                  pathname === '/' ? "text-white" : "text-gray-300 hover:text-primary"
+                  "flex items-center gap-3 py-3 px-2 rounded-lg text-base font-medium transition-colors",
+                  pathname === '/' ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
                 )}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <Home className="h-4 w-4" />
+                <Home className="h-5 w-5" />
                 Início
               </Link>
               <Link
                 href="/cotas"
                 className={cn(
-                  "flex items-center gap-2 text-sm font-medium",
-                  isActivePath('/cotas') ? "text-white" : "text-gray-300 hover:text-primary"
+                  "flex items-center gap-3 py-3 px-2 rounded-lg text-base font-medium transition-colors",
+                  isActivePath('/cotas') ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
                 )}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <FileText className="h-4 w-4" />
+                <FileText className="h-5 w-5" />
                 Cotas Disponíveis
               </Link>
               {mounted && !authLoading && user ? (
@@ -405,24 +405,24 @@ export function Header() {
                   <Link
                     href="/publicar-cota"
                     className={cn(
-                      "flex items-center gap-2 text-sm font-medium",
-                      isActivePath('/publicar-cota') ? "text-white" : "text-gray-300 hover:text-primary"
+                      "flex items-center gap-3 py-3 px-2 rounded-lg text-base font-medium transition-colors",
+                      isActivePath('/publicar-cota') ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <PlusCircle className="h-4 w-4" />
+                    <PlusCircle className="h-5 w-5" />
                     Anunciar Cota
                   </Link>
                   <Link
                     href="/minhas-cotas"
                     className={cn(
-                      "flex items-center justify-between text-sm font-medium",
-                      isActivePath('/minhas-cotas') ? "text-white" : "text-gray-300 hover:text-primary"
+                      "flex items-center justify-between py-3 px-2 rounded-lg text-base font-medium transition-colors",
+                      isActivePath('/minhas-cotas') ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
+                    <span className="flex items-center gap-3">
+                      <FileText className="h-5 w-5" />
                       Minhas Cotas
                     </span>
                     <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">
@@ -432,13 +432,13 @@ export function Header() {
                   <Link
                     href="/minhas-propostas"
                     className={cn(
-                      "flex items-center justify-between text-sm font-medium",
-                      isActivePath('/minhas-propostas') ? "text-white" : "text-gray-300 hover:text-primary"
+                      "flex items-center justify-between py-3 px-2 rounded-lg text-base font-medium transition-colors",
+                      isActivePath('/minhas-propostas') ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
+                    <span className="flex items-center gap-3">
+                      <FileText className="h-5 w-5" />
                       Minhas Propostas
                     </span>
                     <span className="flex items-center gap-1">
@@ -455,12 +455,12 @@ export function Header() {
                   <Link
                     href="/meus-dados"
                     className={cn(
-                      "flex items-center gap-2 text-sm font-medium",
-                      isActivePath('/meus-dados') ? "text-white" : "text-gray-300 hover:text-primary"
+                      "flex items-center gap-3 py-3 px-2 rounded-lg text-base font-medium transition-colors",
+                      isActivePath('/meus-dados') ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <User className="h-4 w-4" />
+                    <User className="h-5 w-5" />
                     Meus Dados
                   </Link>
                   {isAdmin && (
@@ -479,12 +479,12 @@ export function Header() {
                             key={link.href}
                             href={link.href}
                             className={cn(
-                              "flex items-center gap-2 text-sm font-medium",
-                              isActive ? "text-white" : "text-gray-300 hover:text-primary"
+                              "flex items-center gap-3 py-3 px-2 rounded-lg text-base font-medium transition-colors",
+                              isActive ? "text-white bg-white/10" : "text-gray-300 hover:text-white hover:bg-white/5"
                             )}
                             onClick={() => setMobileMenuOpen(false)}
                           >
-                            <Icon className="h-4 w-4" />
+                            <Icon className="h-5 w-5" />
                             {link.label}
                           </Link>
                         )
@@ -496,17 +496,17 @@ export function Header() {
                       handleSignOut()
                       setMobileMenuOpen(false)
                     }}
-                    className="flex items-center gap-2 text-sm font-medium text-red-400 hover:text-red-300"
+                    className="flex items-center gap-3 py-3 px-2 rounded-lg text-base font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors w-full"
                   >
-                    <LogOut className="h-4 w-4" />
+                    <LogOut className="h-5 w-5" />
                     Sair
                   </button>
                 </>
               ) : (
-                <>
+                <div className="space-y-3 pt-2">
                   <Link
                     href="/login"
-                    className="text-sm font-medium text-gray-300 hover:text-primary"
+                    className="flex items-center justify-center py-3 px-4 rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Entrar
@@ -515,11 +515,11 @@ export function Header() {
                     href="/cadastro"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button className="w-full bg-primary text-white hover:bg-primary/90 rounded-full">
+                    <Button className="w-full h-12 bg-primary text-white hover:bg-primary/90 rounded-full text-base">
                       Cadastrar
                     </Button>
                   </Link>
-                </>
+                </div>
               )}
             </nav>
           </div>

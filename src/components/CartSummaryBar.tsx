@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ShoppingCart } from 'lucide-react'
+import { ShoppingCart, ArrowRight } from 'lucide-react'
 import { useCart } from '@/contexts/CartContext'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, formatPercentage } from '@/lib/utils'
@@ -61,9 +61,11 @@ export function CartSummaryBar() {
 
           <Button
             onClick={() => router.push('/composicao-credito')}
-            className="bg-secondary hover:bg-secondary/90 text-white"
+            className="bg-secondary hover:bg-secondary/90 text-white flex-shrink-0"
           >
-            Fazer Proposta
+            <span className="hidden sm:inline">Fazer Proposta</span>
+            <span className="sm:hidden">Proposta</span>
+            <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
       </div>

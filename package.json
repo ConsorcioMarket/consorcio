@@ -17,6 +17,7 @@
     "db:migrate:prod": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
+    "db:seed:cotas": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-real-cotas.ts",
     "db:reset": "prisma migrate reset"
   },
   "dependencies": {

@@ -48,7 +48,7 @@ export default function RootLayout({
             <ToastProvider>
               <Header />
               <CartDrawer />
-              <main className="pb-14">{children}</main>
+              <main className="pb-20">{children}</main>
               <AdminStatusBar />
               <CartSummaryBar />
               <WhatsAppFloater phoneNumber="5513991053598" />
