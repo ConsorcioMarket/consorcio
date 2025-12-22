@@ -69,9 +69,17 @@ export default function RecuperarSenhaPage() {
                   <h2 className="text-2xl font-bold text-primary-darker mb-3">
                     Email enviado!
                   </h2>
-                  <p className="text-muted-foreground mb-6">
+                  <p className="text-muted-foreground mb-4">
                     Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.
                   </p>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                    <p className="text-sm text-yellow-800 font-medium mb-1">
+                      ⚠️ Importante: Verifique sua pasta de Spam/Lixo Eletrônico
+                    </p>
+                    <p className="text-xs text-yellow-700">
+                      O email pode ter sido filtrado automaticamente. Procure por um email de <strong>noreply@consorciomarket.com.br</strong> e marque como "Não é spam" para receber futuros emails na caixa de entrada.
+                    </p>
+                  </div>
                   <p className="text-sm text-gray-500 mb-8">
                     Não recebeu o email? Verifique sua pasta de spam ou tente novamente.
                   </p>
