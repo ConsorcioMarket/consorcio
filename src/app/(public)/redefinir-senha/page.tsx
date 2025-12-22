@@ -87,7 +87,16 @@ export default function RedefinirSenhaPage() {
       const { error } = await supabase.auth.updateUser({ password })
 
       if (error) {
-        setError(error.message || 'Erro ao atualizar senha.')
+        // Traduzir mensagens de erro do Supabase para português
+        let errorMessage = 'Erro ao atualizar senha.'
+        if (error.message.includes('different from the old password')) {
+          errorMessage = 'A nova senha deve ser diferente da senha atual.'
+        } else if (error.message.includes('at least')) {
+          errorMessage = 'A senha deve ter pelo menos 6 caracteres.'
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+        setError(errorMessage)
         setLoading(false)
         return
       }
