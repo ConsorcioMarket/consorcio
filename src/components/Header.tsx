@@ -376,8 +376,8 @@ export function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-700 animate-fade-in-down">
-            <nav className="flex flex-col space-y-1 animate-stagger">
+          <div className="md:hidden py-4 border-t border-gray-700 animate-fade-in-down max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <nav className="flex flex-col space-y-1 animate-stagger pb-4">
               <Link
                 href="/"
                 className={cn(
