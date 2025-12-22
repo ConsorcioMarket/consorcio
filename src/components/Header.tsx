@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { Menu, X, User, LogOut, FileText, Home, PlusCircle, ShoppingCart, ChevronDown, Clock, CreditCard, Users, LayoutDashboard, Shield, ClipboardList, Settings } from 'lucide-react'
 import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
@@ -100,6 +101,24 @@ export function Header() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Prevent body scroll when mobile menu is open on iOS
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      // Prevent scroll on iOS by fixing body position
+      const scrollY = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
+    } else {
+      // Restore scroll position
+      const scrollY = document.body.style.top
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      window.scrollTo(0, parseInt(scrollY || '0') * -1)
+    }
+  }, [mobileMenuOpen])
 
   const handleSignOut = async () => {
     clearCart()
@@ -374,10 +393,30 @@ export function Header() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-700 animate-fade-in-down max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <nav className="flex flex-col space-y-1 animate-stagger pb-4">
+      </div>
+
+      {/* Mobile Menu Portal - Rendered outside header for better scroll */}
+      {mounted && mobileMenuOpen && typeof window !== 'undefined' && createPortal(
+        <div
+          className="md:hidden fixed inset-0 z-100"
+          style={{ top: '64px' }}
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Scrollable Menu Content */}
+          <div
+            className="absolute inset-0 bg-navy overflow-y-scroll"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain',
+            }}
+          >
+            <nav className="flex flex-col p-4 pb-32 min-h-full">
               <Link
                 href="/"
                 className={cn(
@@ -400,7 +439,7 @@ export function Header() {
                 <FileText className="h-5 w-5" />
                 Cotas Disponíveis
               </Link>
-              {mounted && !authLoading && user ? (
+              {!authLoading && user ? (
                 <>
                   <Link
                     href="/publicar-cota"
@@ -491,22 +530,25 @@ export function Header() {
                       })}
                     </>
                   )}
-                  <button
-                    onClick={() => {
-                      handleSignOut()
-                      setMobileMenuOpen(false)
-                    }}
-                    className="flex items-center gap-3 py-3 px-2 rounded-lg text-base font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors w-full"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    Sair
-                  </button>
+                  {/* Logout button with clear separation */}
+                  <div className="border-t border-gray-700 mt-6 pt-4">
+                    <button
+                      onClick={() => {
+                        handleSignOut()
+                        setMobileMenuOpen(false)
+                      }}
+                      className="flex items-center gap-3 py-4 px-3 rounded-lg text-base font-semibold bg-red-500/10 text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-colors w-full"
+                    >
+                      <LogOut className="h-5 w-5" />
+                      Sair da Conta
+                    </button>
+                  </div>
                 </>
               ) : (
-                <div className="space-y-3 pt-2">
+                <div className="flex flex-col gap-3 pt-4">
                   <Link
                     href="/login"
-                    className="flex items-center justify-center py-3 px-4 rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                    className="flex items-center justify-center py-4 px-4 rounded-lg text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Entrar
@@ -523,8 +565,9 @@ export function Header() {
               )}
             </nav>
           </div>
-        )}
-      </div>
+        </div>,
+        document.body
+      )}
     </header>
   )
 }
