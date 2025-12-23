@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { Users, Search, Filter, Check, X, AlertCircle, Building2, User } from 'lucide-react'
+import Link from 'next/link'
+import { Users, Search, Filter, Check, X, AlertCircle, Building2, User, Eye } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Pagination } from '@/components/ui/pagination'
 import { formatCPF, formatCNPJ } from '@/lib/utils'
-import type { PFStatus, PJStatus, UserRole } from '@/types/database'
+import type { PFStatus, PJStatus } from '@/types/database'
 import {
   Dialog,
   DialogContent,
@@ -32,7 +33,6 @@ interface UserPF {
   full_name: string
   cpf: string | null
   phone: string
-  role: UserRole
   status: PFStatus
   created_at: string
   cotas_count: number
@@ -403,15 +403,15 @@ export default function AdminUsuariosPage() {
             </CardContent>
           </Card>
 
-          {/* Users Table */}
+          {/* Users List */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <Users className="h-5 w-5" />
                 Pessoas Físicas ({totalCountPF})
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 sm:p-6 sm:pt-0">
               {loadingPF ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">Carregando usuários...</p>
@@ -421,78 +421,136 @@ export default function AdminUsuariosPage() {
                   <p className="text-muted-foreground">Nenhum usuário encontrado.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3 font-medium">Nome</th>
-                        <th className="text-left p-3 font-medium">CPF</th>
-                        <th className="text-center p-3 font-medium">Cotas</th>
-                        <th className="text-center p-3 font-medium">Propostas</th>
-                        <th className="text-center p-3 font-medium">Role</th>
-                        <th className="text-center p-3 font-medium">Status</th>
-                        <th className="text-center p-3 font-medium">Cadastro</th>
-                        <th className="text-center p-3 font-medium">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usersPF.map((user) => (
-                        <tr key={user.id} className="border-b hover:bg-gray-50">
-                          <td className="p-3">
-                            <div className="font-medium">{user.full_name}</div>
-                            <div className="text-xs text-muted-foreground">{user.email}</div>
-                          </td>
-                          <td className="p-3">
-                            {user.cpf ? formatCPF(user.cpf) : '-'}
-                          </td>
-                          <td className="p-3 text-center">
-                            <Badge variant="outline">{user.cotas_count}</Badge>
-                          </td>
-                          <td className="p-3 text-center">
-                            <Badge variant="outline">{user.proposals_count}</Badge>
-                          </td>
-                          <td className="p-3 text-center">
-                            <Badge variant={user.role === 'ADMIN' ? 'default' : 'secondary'}>
-                              {user.role}
-                            </Badge>
-                          </td>
-                          <td className="p-3 text-center">
-                            <Badge variant={getPFStatusBadgeVariant(user.status)}>
-                              {getStatusLabel(user.status)}
-                            </Badge>
-                          </td>
-                          <td className="p-3 text-center text-muted-foreground">
+                <>
+                  {/* Mobile Cards */}
+                  <div className="sm:hidden divide-y">
+                    {usersPF.map((user) => (
+                      <div key={user.id} className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{user.full_name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                          </div>
+                          <Badge variant={getPFStatusBadgeVariant(user.status)} className="shrink-0">
+                            {getStatusLabel(user.status)}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          {user.cpf && <span>CPF: {formatCPF(user.cpf)}</span>}
+                          <span>Cotas: {user.cotas_count}</span>
+                          <span>Propostas: {user.proposals_count}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
                             {new Date(user.created_at).toLocaleDateString('pt-BR')}
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center justify-center gap-2">
-                              {user.status === 'PENDING_REVIEW' && (
-                                <>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                    onClick={() => setActionDialog({ open: true, type: 'approve', entityType: 'pf', entity: user })}
-                                  >
-                                    <Check className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    onClick={() => setActionDialog({ open: true, type: 'reject', entityType: 'pf', entity: user })}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </td>
+                          </span>
+                          <div className="flex gap-2">
+                            <Link href={`/admin/usuarios/${user.id}`}>
+                              <Button variant="outline" size="sm">
+                                <Eye className="h-4 w-4 mr-1" />
+                                Ver
+                              </Button>
+                            </Link>
+                            {user.status === 'PENDING_REVIEW' && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  onClick={() => setActionDialog({ open: true, type: 'approve', entityType: 'pf', entity: user })}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => setActionDialog({ open: true, type: 'reject', entityType: 'pf', entity: user })}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium">Nome</th>
+                          <th className="text-left p-3 font-medium">CPF</th>
+                          <th className="text-center p-3 font-medium">Cotas</th>
+                          <th className="text-center p-3 font-medium">Propostas</th>
+                          <th className="text-center p-3 font-medium">Status</th>
+                          <th className="text-center p-3 font-medium">Cadastro</th>
+                          <th className="text-center p-3 font-medium">Ações</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {usersPF.map((user) => (
+                          <tr key={user.id} className="border-b hover:bg-gray-50">
+                            <td className="p-3">
+                              <div className="font-medium">{user.full_name}</div>
+                              <div className="text-xs text-muted-foreground">{user.email}</div>
+                            </td>
+                            <td className="p-3">
+                              {user.cpf ? formatCPF(user.cpf) : '-'}
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge variant="outline">{user.cotas_count}</Badge>
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge variant="outline">{user.proposals_count}</Badge>
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge variant={getPFStatusBadgeVariant(user.status)}>
+                                {getStatusLabel(user.status)}
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-center text-muted-foreground">
+                              {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center justify-center gap-2">
+                                <Link href={`/admin/usuarios/${user.id}`}>
+                                  <Button variant="outline" size="sm">
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    Ver
+                                  </Button>
+                                </Link>
+                                {user.status === 'PENDING_REVIEW' && (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                      onClick={() => setActionDialog({ open: true, type: 'approve', entityType: 'pf', entity: user })}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      onClick={() => setActionDialog({ open: true, type: 'reject', entityType: 'pf', entity: user })}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
 
               {/* Pagination */}
@@ -501,7 +559,7 @@ export default function AdminUsuariosPage() {
                   currentPage={pagePF}
                   totalPages={totalPagesPF}
                   onPageChange={setPagePF}
-                  className="mt-4 pt-4 border-t"
+                  className="mt-4 pt-4 border-t px-4 sm:px-0"
                 />
               )}
             </CardContent>
@@ -547,15 +605,15 @@ export default function AdminUsuariosPage() {
             </CardContent>
           </Card>
 
-          {/* Companies Table */}
+          {/* Companies List */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <Building2 className="h-5 w-5" />
                 Pessoas Jurídicas ({totalCountPJ})
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 sm:p-6 sm:pt-0">
               {loadingPJ ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">Carregando empresas...</p>
@@ -565,71 +623,134 @@ export default function AdminUsuariosPage() {
                   <p className="text-muted-foreground">Nenhuma empresa encontrada.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-3 font-medium">Razão Social</th>
-                        <th className="text-left p-3 font-medium">CNPJ</th>
-                        <th className="text-left p-3 font-medium">Responsável</th>
-                        <th className="text-center p-3 font-medium">Status</th>
-                        <th className="text-center p-3 font-medium">Cadastro</th>
-                        <th className="text-center p-3 font-medium">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usersPJ.map((pj) => (
-                        <tr key={pj.id} className="border-b hover:bg-gray-50">
-                          <td className="p-3">
-                            <div className="font-medium">{pj.legal_name}</div>
-                            {pj.company_email && (
-                              <div className="text-xs text-muted-foreground">{pj.company_email}</div>
-                            )}
-                          </td>
-                          <td className="p-3">
-                            {formatCNPJ(pj.cnpj)}
-                          </td>
-                          <td className="p-3">
-                            <div className="font-medium">{pj.owner_name}</div>
-                            <div className="text-xs text-muted-foreground">{pj.owner_email}</div>
-                          </td>
-                          <td className="p-3 text-center">
-                            <Badge variant={getPJStatusBadgeVariant(pj.status)}>
-                              {getStatusLabel(pj.status)}
-                            </Badge>
-                          </td>
-                          <td className="p-3 text-center text-muted-foreground">
+                <>
+                  {/* Mobile Cards */}
+                  <div className="sm:hidden divide-y">
+                    {usersPJ.map((pj) => (
+                      <div key={pj.id} className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{pj.legal_name}</p>
+                            <p className="text-xs text-muted-foreground">{formatCNPJ(pj.cnpj)}</p>
+                          </div>
+                          <Badge variant={getPJStatusBadgeVariant(pj.status)} className="shrink-0">
+                            {getStatusLabel(pj.status)}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          <p>Responsável: {pj.owner_name}</p>
+                          <p>{pj.owner_email}</p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
                             {new Date(pj.created_at).toLocaleDateString('pt-BR')}
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center justify-center gap-2">
-                              {pj.status === 'PENDING_REVIEW' && (
-                                <>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                    onClick={() => setActionDialog({ open: true, type: 'approve', entityType: 'pj', entity: pj })}
-                                  >
-                                    <Check className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    onClick={() => setActionDialog({ open: true, type: 'reject', entityType: 'pj', entity: pj })}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </td>
+                          </span>
+                          <div className="flex gap-2">
+                            <Link href={`/admin/usuarios/${pj.pf_id}`}>
+                              <Button variant="outline" size="sm">
+                                <Eye className="h-4 w-4 mr-1" />
+                                Ver
+                              </Button>
+                            </Link>
+                            {pj.status === 'PENDING_REVIEW' && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  onClick={() => setActionDialog({ open: true, type: 'approve', entityType: 'pj', entity: pj })}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => setActionDialog({ open: true, type: 'reject', entityType: 'pj', entity: pj })}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-3 font-medium">Razão Social</th>
+                          <th className="text-left p-3 font-medium">CNPJ</th>
+                          <th className="text-left p-3 font-medium">Responsável</th>
+                          <th className="text-center p-3 font-medium">Status</th>
+                          <th className="text-center p-3 font-medium">Cadastro</th>
+                          <th className="text-center p-3 font-medium">Ações</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {usersPJ.map((pj) => (
+                          <tr key={pj.id} className="border-b hover:bg-gray-50">
+                            <td className="p-3">
+                              <div className="font-medium">{pj.legal_name}</div>
+                              {pj.company_email && (
+                                <div className="text-xs text-muted-foreground">{pj.company_email}</div>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              {formatCNPJ(pj.cnpj)}
+                            </td>
+                            <td className="p-3">
+                              <div className="font-medium">{pj.owner_name}</div>
+                              <div className="text-xs text-muted-foreground">{pj.owner_email}</div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge variant={getPJStatusBadgeVariant(pj.status)}>
+                                {getStatusLabel(pj.status)}
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-center text-muted-foreground">
+                              {new Date(pj.created_at).toLocaleDateString('pt-BR')}
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center justify-center gap-2">
+                                <Link href={`/admin/usuarios/${pj.pf_id}`}>
+                                  <Button variant="outline" size="sm">
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    Ver
+                                  </Button>
+                                </Link>
+                                {pj.status === 'PENDING_REVIEW' && (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                      onClick={() => setActionDialog({ open: true, type: 'approve', entityType: 'pj', entity: pj })}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      onClick={() => setActionDialog({ open: true, type: 'reject', entityType: 'pj', entity: pj })}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
 
               {/* Pagination */}
@@ -638,7 +759,7 @@ export default function AdminUsuariosPage() {
                   currentPage={pagePJ}
                   totalPages={totalPagesPJ}
                   onPageChange={setPagePJ}
-                  className="mt-4 pt-4 border-t"
+                  className="mt-4 pt-4 border-t px-4 sm:px-0"
                 />
               )}
             </CardContent>

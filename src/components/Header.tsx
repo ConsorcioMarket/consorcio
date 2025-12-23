@@ -123,7 +123,6 @@ export function Header() {
     { href: '/admin', label: 'Painel', icon: LayoutDashboard },
     { href: '/admin/cotas', label: 'Cotas', icon: CreditCard },
     { href: '/admin/propostas', label: 'Propostas', icon: ClipboardList },
-    { href: '/admin/documentos', label: 'Documentos', icon: FileText },
     { href: '/admin/usuarios', label: 'Usuários', icon: Users },
   ]
 
@@ -139,6 +138,10 @@ export function Header() {
   const isActivePath = (href: string) => {
     if (href === '/cotas') {
       return pathname === '/cotas' || pathname?.startsWith('/cota/')
+    }
+    // Exact match for /admin (Painel) - should not be active on sub-routes
+    if (href === '/admin') {
+      return pathname === '/admin'
     }
     return pathname === href || pathname?.startsWith(href + '/')
   }

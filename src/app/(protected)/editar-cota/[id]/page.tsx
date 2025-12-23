@@ -159,7 +159,7 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
         .eq('owner_id', id)
         .eq('owner_type', 'COTA')
         .eq('document_type', 'COTA_STATEMENT')
-        .single()
+        .maybeSingle()
 
       if (docData) {
         setStatementDocument(docData)

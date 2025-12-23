@@ -66,7 +66,7 @@ export default function AdminDashboard() {
       value: stats.pendingDocuments,
       icon: FileText,
       color: 'bg-yellow-500',
-      href: '/admin/documentos',
+      href: '/admin/documentos-pendentes',
     },
     {
       title: 'Propostas Pendentes',
@@ -93,22 +93,22 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {statCards.map((card) => {
           const Icon = card.icon
           return (
             <Link key={card.title} href={card.href}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full min-w-[200px]">
-                <CardContent className="p-8">
-                  <div className="flex items-center justify-between gap-6">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
-                      <p className="text-4xl font-bold mt-2">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center justify-between gap-2 sm:gap-4">
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{card.title}</p>
+                      <p className="text-2xl sm:text-4xl font-bold mt-1 sm:mt-2">
                         {loading ? '-' : card.value}
                       </p>
                     </div>
-                    <div className={`${card.color} p-4 rounded-xl shrink-0`}>
-                      <Icon className="h-7 w-7 text-white" />
+                    <div className={`${card.color} p-2 sm:p-4 rounded-lg sm:rounded-xl shrink-0`}>
+                      <Icon className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
                     </div>
                   </div>
                 </CardContent>
@@ -132,9 +132,9 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                 <div>
                   <p className="font-medium text-yellow-800">{stats.pendingDocuments} documentos aguardando análise</p>
-                  <p className="text-sm text-yellow-700">Revisar documentos enviados por vendedores</p>
+                  <p className="text-sm text-yellow-700">Revisar documentos enviados por usuários</p>
                 </div>
-                <Link href="/admin/documentos">
+                <Link href="/admin/documentos-pendentes">
                   <Button size="sm" variant="outline">Ver</Button>
                 </Link>
               </div>
@@ -170,10 +170,10 @@ export default function AdminDashboard() {
                 Gerenciar Cotas
               </Button>
             </Link>
-            <Link href="/admin/documentos" className="block">
+            <Link href="/admin/propostas" className="block">
               <Button variant="outline" className="w-full justify-start">
-                <FileText className="h-4 w-4 mr-2" />
-                Revisar Documentos
+                <Clock className="h-4 w-4 mr-2" />
+                Gerenciar Propostas
               </Button>
             </Link>
             <Link href="/admin/usuarios" className="block">

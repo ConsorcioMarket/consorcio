@@ -17,28 +17,28 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 // Realistic Brazilian seller accounts
 const sellers = [
   {
-    email: 'joao.silva@example.com',
+    email: 'joao.silva.vendas@gmail.com',
     password: 'Senha@123',
     name: 'João da Silva',
     phone: '11987654321',
     cpf: '12345678901',
   },
   {
-    email: 'maria.santos@example.com',
+    email: 'maria.santos.sp@gmail.com',
     password: 'Senha@123',
     name: 'Maria Santos',
     phone: '11976543210',
     cpf: '23456789012',
   },
   {
-    email: 'pedro.oliveira@example.com',
+    email: 'pedro.oliveira.rj@gmail.com',
     password: 'Senha@123',
     name: 'Pedro Oliveira',
     phone: '11965432109',
     cpf: '34567890123',
   },
   {
-    email: 'ana.costa@example.com',
+    email: 'ana.costa.mg@gmail.com',
     password: 'Senha@123',
     name: 'Ana Costa',
     phone: '11954321098',
@@ -49,28 +49,28 @@ const sellers = [
 // Test user configurations
 const testUsers = {
   buyerPF: {
-    email: 'comprador.pf@demo.consorciomarket.com.br',
+    email: 'carla.ferreira.sp@gmail.com',
     password: 'Demo123!',
-    name: 'Maria Santos (Compradora PF)',
+    name: 'Carla Ferreira',
     phone: '11988776655',
     cpf: '98765432100',
-    status: PFStatus.APPROVED, // Approved buyer
+    status: PFStatus.APPROVED,
   },
   buyerPFPending: {
-    email: 'comprador.pendente@demo.consorciomarket.com.br',
+    email: 'rafael.mendes.rj@gmail.com',
     password: 'Demo123!',
-    name: 'João Oliveira (Pendente)',
+    name: 'Rafael Mendes',
     phone: '11977665544',
     cpf: '11122233344',
-    status: PFStatus.PENDING_REVIEW, // Pending approval
+    status: PFStatus.PENDING_REVIEW,
   },
   buyerPFIncomplete: {
-    email: 'comprador.incompleto@demo.consorciomarket.com.br',
+    email: 'lucas.almeida.mg@gmail.com',
     password: 'Demo123!',
-    name: 'Ana Costa (Incompleto)',
+    name: 'Lucas Almeida',
     phone: '11966554433',
     cpf: null,
-    status: PFStatus.INCOMPLETE, // Incomplete profile
+    status: PFStatus.INCOMPLETE,
   },
   admin: {
     email: 'admin@consorciomarket.com.br',

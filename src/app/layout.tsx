@@ -6,7 +6,6 @@ import { CartProvider } from '@/contexts/CartContext'
 import { Header } from '@/components/Header'
 import { CartDrawer } from '@/components/CartDrawer'
 import { ToastProvider } from '@/components/ui/toast'
-import { AdminStatusBar } from '@/components/AdminStatusBar'
 import { WhatsAppFloater } from '@/components/WhatsAppFloater'
 import { CartSummaryBar } from '@/components/CartSummaryBar'
 
@@ -49,8 +48,7 @@ export default function RootLayout({
               <Header />
               <CartDrawer />
               <main className="pb-20">{children}</main>
-              <AdminStatusBar />
-              <CartSummaryBar />
+                            <CartSummaryBar />
               <WhatsAppFloater phoneNumber="5513991053598" />
             </ToastProvider>
           </CartProvider>

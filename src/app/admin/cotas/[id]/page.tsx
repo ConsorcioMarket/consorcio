@@ -175,10 +175,28 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
         .eq('owner_id', id)
         .eq('owner_type', 'COTA')
         .eq('document_type', 'COTA_STATEMENT')
-        .single()
+        .maybeSingle()
 
       if (docData) {
-        setStatement(docData)
+        // Generate signed URL for the document
+        const bucketName = 'documents-cota'
+        const regex = new RegExp(`${bucketName}/(.+)$`)
+        const match = docData.file_url.match(regex)
+        const filePath = match ? match[1] : ''
+
+        if (filePath) {
+          const { data: signedUrlData } = await supabase.storage
+            .from(bucketName)
+            .createSignedUrl(filePath, 3600) // 1 hour expiration
+
+          if (signedUrlData?.signedUrl) {
+            setStatement({ ...docData, file_url: signedUrlData.signedUrl })
+          } else {
+            setStatement(docData)
+          }
+        } else {
+          setStatement(docData)
+        }
       }
 
       setLoading(false)
@@ -277,6 +295,7 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
       n_installments: nInstallments,
       installment_value: installmentValue,
       entry_percentage: entryPercentage,
+      monthly_rate: monthlyRate,
     })
 
     setEditMode(false)
@@ -448,19 +467,6 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
         </Link>
       </div>
 
-      {/* Success/Error Messages */}
-      {success && (
-        <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <CheckCircle className="h-5 w-5 text-green-600" />
-          <p className="text-green-800">{success}</p>
-        </div>
-      )}
-      {error && (
-        <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="h-5 w-5 text-red-600" />
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Info - 2 columns */}
@@ -583,6 +589,7 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
             <CardContent>
               {statement ? (
                 <div className="space-y-4">
+                  {/* Document Info Header */}
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <FileText className="h-8 w-8 text-gray-500" />
@@ -604,6 +611,29 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
                         </Button>
                       </a>
                     </div>
+                  </div>
+
+                  {/* Document Preview */}
+                  <div className="border rounded-lg overflow-hidden bg-gray-100">
+                    {statement.file_url ? (
+                      statement.file_name.toLowerCase().endsWith('.pdf') ? (
+                        <iframe
+                          src={statement.file_url}
+                          className="w-full h-[500px]"
+                          title="Visualização do documento"
+                        />
+                      ) : (
+                        <img
+                          src={statement.file_url}
+                          alt={statement.file_name}
+                          className="w-full max-h-[500px] object-contain"
+                        />
+                      )
+                    ) : (
+                      <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                        <p>Não foi possível carregar o documento.</p>
+                      </div>
+                    )}
                   </div>
 
                   {statement.status === 'UNDER_REVIEW' && (
@@ -730,6 +760,24 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
           </Card>
         </div>
       </div>
+
+      {/* Toast Messages - Fixed position bottom right */}
+      {(success || error) && (
+        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          {success && (
+            <div className="flex items-center gap-2 p-4 bg-green-600 text-white rounded-lg shadow-lg min-w-[280px]">
+              <CheckCircle className="h-5 w-5 flex-shrink-0" />
+              <p className="text-sm font-medium">{success}</p>
+            </div>
+          )}
+          {error && (
+            <div className="flex items-center gap-2 p-4 bg-red-600 text-white rounded-lg shadow-lg min-w-[280px]">
+              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

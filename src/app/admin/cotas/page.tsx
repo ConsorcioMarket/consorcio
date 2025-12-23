@@ -230,15 +230,15 @@ export default function AdminCotasPage() {
         </CardContent>
       </Card>
 
-      {/* Cotas Table */}
+      {/* Cotas List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <CreditCard className="h-5 w-5" />
             Lista de Cotas ({totalCount})
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6 sm:pt-0">
           {loading ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">Carregando cotas...</p>
@@ -248,84 +248,147 @@ export default function AdminCotasPage() {
               <p className="text-muted-foreground">Nenhuma cota encontrada.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3 font-medium">Administradora</th>
-                    <th className="text-left p-3 font-medium">Vendedor</th>
-                    <th className="text-right p-3 font-medium">Crédito</th>
-                    <th className="text-right p-3 font-medium">Entrada</th>
-                    <th className="text-center p-3 font-medium">Parcelas</th>
-                    <th className="text-center p-3 font-medium">Status</th>
-                    <th className="text-center p-3 font-medium">Extrato</th>
-                    <th className="text-center p-3 font-medium">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cotas.map((cota) => (
-                    <tr key={cota.id} className="border-b hover:bg-gray-50">
-                      <td className="p-3">
-                        <div className="font-medium">{cota.administrator}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(cota.created_at).toLocaleDateString('pt-BR')}
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <div>{cota.seller?.full_name || '-'}</div>
-                        <div className="text-xs text-muted-foreground">{cota.seller?.email}</div>
-                      </td>
-                      <td className="p-3 text-right font-medium">
-                        {formatCurrency(cota.credit_amount)}
-                      </td>
-                      <td className="p-3 text-right">
-                        {formatCurrency(cota.entry_amount)}
-                      </td>
-                      <td className="p-3 text-center">{cota.n_installments}x</td>
-                      <td className="p-3 text-center">
-                        <select
-                          value={cota.status}
-                          onChange={(e) => handleStatusChange(cota, e.target.value as CotaStatus)}
-                          className={`h-8 rounded-md border px-2 py-1 text-xs font-medium cursor-pointer transition-colors ${
-                            cota.status === 'AVAILABLE'
-                              ? 'bg-green-100 border-green-300 text-green-800'
-                              : cota.status === 'RESERVED'
-                              ? 'bg-yellow-100 border-yellow-300 text-yellow-800'
-                              : cota.status === 'SOLD'
-                              ? 'bg-gray-100 border-gray-300 text-gray-800'
-                              : 'bg-red-100 border-red-300 text-red-800'
-                          }`}
-                        >
-                          {STATUS_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="p-3 text-center">
+            <>
+              {/* Mobile Cards */}
+              <div className="sm:hidden divide-y">
+                {cotas.map((cota) => (
+                  <div key={cota.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium">{cota.administrator}</p>
+                        <p className="text-xs text-muted-foreground">{cota.seller?.full_name || '-'}</p>
+                      </div>
+                      <select
+                        value={cota.status}
+                        onChange={(e) => handleStatusChange(cota, e.target.value as CotaStatus)}
+                        className={`h-7 rounded-md border px-2 text-xs font-medium cursor-pointer ${
+                          cota.status === 'AVAILABLE'
+                            ? 'bg-green-100 border-green-300 text-green-800'
+                            : cota.status === 'RESERVED'
+                            ? 'bg-yellow-100 border-yellow-300 text-yellow-800'
+                            : cota.status === 'SOLD'
+                            ? 'bg-gray-100 border-gray-300 text-gray-800'
+                            : 'bg-red-100 border-red-300 text-red-800'
+                        }`}
+                      >
+                        {STATUS_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Crédito: </span>
+                        <span className="font-medium">{formatCurrency(cota.credit_amount)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Entrada: </span>
+                        <span>{formatCurrency(cota.entry_amount)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{cota.n_installments}x</span>
                         {cota.hasStatement ? (
-                          <Badge variant="success" className="gap-1">
+                          <Badge variant="success" className="gap-1 text-xs">
                             <FileText className="h-3 w-3" />
-                            Sim
+                            Extrato
                           </Badge>
                         ) : (
-                          <Badge variant="secondary">Não</Badge>
+                          <Badge variant="secondary" className="text-xs">Sem extrato</Badge>
                         )}
-                      </td>
-                      <td className="p-3 text-center">
-                        <Link href={`/admin/cotas/${cota.id}`}>
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4 mr-1" />
-                            Ver
-                          </Button>
-                        </Link>
-                      </td>
+                      </div>
+                      <Link href={`/admin/cotas/${cota.id}`}>
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-1" />
+                          Ver
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-3 font-medium">Administradora</th>
+                      <th className="text-left p-3 font-medium">Vendedor</th>
+                      <th className="text-right p-3 font-medium">Crédito</th>
+                      <th className="text-right p-3 font-medium">Entrada</th>
+                      <th className="text-center p-3 font-medium">Parcelas</th>
+                      <th className="text-center p-3 font-medium">Status</th>
+                      <th className="text-center p-3 font-medium">Extrato</th>
+                      <th className="text-center p-3 font-medium">Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {cotas.map((cota) => (
+                      <tr key={cota.id} className="border-b hover:bg-gray-50">
+                        <td className="p-3">
+                          <div className="font-medium">{cota.administrator}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(cota.created_at).toLocaleDateString('pt-BR')}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div>{cota.seller?.full_name || '-'}</div>
+                          <div className="text-xs text-muted-foreground">{cota.seller?.email}</div>
+                        </td>
+                        <td className="p-3 text-right font-medium">
+                          {formatCurrency(cota.credit_amount)}
+                        </td>
+                        <td className="p-3 text-right">
+                          {formatCurrency(cota.entry_amount)}
+                        </td>
+                        <td className="p-3 text-center">{cota.n_installments}x</td>
+                        <td className="p-3 text-center">
+                          <select
+                            value={cota.status}
+                            onChange={(e) => handleStatusChange(cota, e.target.value as CotaStatus)}
+                            className={`h-8 rounded-md border px-2 py-1 text-xs font-medium cursor-pointer transition-colors ${
+                              cota.status === 'AVAILABLE'
+                                ? 'bg-green-100 border-green-300 text-green-800'
+                                : cota.status === 'RESERVED'
+                                ? 'bg-yellow-100 border-yellow-300 text-yellow-800'
+                                : cota.status === 'SOLD'
+                                ? 'bg-gray-100 border-gray-300 text-gray-800'
+                                : 'bg-red-100 border-red-300 text-red-800'
+                            }`}
+                          >
+                            {STATUS_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="p-3 text-center">
+                          {cota.hasStatement ? (
+                            <Badge variant="success" className="gap-1">
+                              <FileText className="h-3 w-3" />
+                              Sim
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">Não</Badge>
+                          )}
+                        </td>
+                        <td className="p-3 text-center">
+                          <Link href={`/admin/cotas/${cota.id}`}>
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4 mr-1" />
+                              Ver
+                            </Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
 
           {/* Pagination */}
@@ -334,7 +397,7 @@ export default function AdminCotasPage() {
               currentPage={page}
               totalPages={totalPages}
               onPageChange={setPage}
-              className="mt-4 pt-4 border-t"
+              className="mt-4 pt-4 border-t px-4 sm:px-0"
             />
           )}
         </CardContent>
