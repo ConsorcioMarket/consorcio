@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { User, Building2, FileText, Save, Plus, Pencil, Trash2 } from 'lucide-react'
+import { User, Building2, FileText, Plus, Pencil, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -211,70 +211,6 @@ export default function MeusDadosPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
   }, [user, authLoading, pathname])
-
-  const handlePfSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) return
-
-    setPfSaving(true)
-    setPfError(null)
-    setPfSuccess(false)
-
-    // Validate required phone field
-    const phoneDigits = pfForm.phone.replace(/\D/g, '')
-    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
-      setPfError('Por favor, informe um telefone válido com DDD (10 ou 11 dígitos).')
-      setPfSaving(false)
-      return
-    }
-
-    console.log('Updating profile for user.id:', user.id)
-
-    const { data, error } = await supabase
-      .from('profiles_pf')
-      .update({
-        full_name: pfForm.full_name,
-        phone: pfForm.phone.replace(/\D/g, ''),
-        address_street: pfForm.address_street || null,
-        address_number: pfForm.address_number || null,
-        address_complement: pfForm.address_complement || null,
-        address_neighborhood: pfForm.address_neighborhood || null,
-        address_city: pfForm.address_city || null,
-        address_state: pfForm.address_state || null,
-        address_zip: pfForm.address_zip.replace(/\D/g, '') || null,
-      })
-      .eq('id', user.id)
-      .select()
-
-    console.log('Update result - data:', data, 'error:', error)
-
-    if (error) {
-      // Translate common Supabase errors to Portuguese
-      if (error.code === '42501' || error.message?.includes('permission denied')) {
-        setPfError('Permissão negada. Por favor, faça logout e login novamente.')
-      } else if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
-        setPfError('Sua sessão expirou. Por favor, faça logout e login novamente.')
-      } else {
-        setPfError(`Erro ao salvar dados: ${error.message || error.code || 'Erro desconhecido'}`)
-      }
-      console.error('Error updating profile:', error)
-    } else if (!data || data.length === 0) {
-      setPfError('Não foi possível atualizar o perfil. Sua sessão pode ter expirado. Faça logout e login novamente.')
-      console.error('No rows updated - possible RLS issue. User ID:', user.id)
-    } else {
-      setPfSuccess(true)
-      setPfEditing(false) // Exit edit mode after successful save
-      await refreshProfile()
-      setTimeout(() => setPfSuccess(false), 3000)
-      addToast({
-        title: 'Dados salvos!',
-        description: 'Suas informações foram atualizadas com sucesso.',
-        variant: 'success',
-      })
-    }
-
-    setPfSaving(false)
-  }
 
   const openPFDialog = async () => {
     // Load PF form data
@@ -567,7 +503,7 @@ export default function MeusDadosPage() {
           <Card className="max-w-4xl mx-auto bg-white shadow-lg border-0">
             <CardContent className="p-6">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-3 mb-8">
+                <TabsList className="grid w-full grid-cols-2 mb-8">
                   <TabsTrigger value="pessoal" className="flex items-center gap-2">
                     <User className="h-4 w-4" />
                     <span className="hidden sm:inline">Dados Pessoais</span>
@@ -578,224 +514,96 @@ export default function MeusDadosPage() {
                     <span className="hidden sm:inline">Empresas (PJ)</span>
                     <span className="sm:hidden">Empresas</span>
                   </TabsTrigger>
-                  <TabsTrigger value="documentos" className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span className="hidden sm:inline">Documentos</span>
-                    <span className="sm:hidden">Docs</span>
-                  </TabsTrigger>
                 </TabsList>
 
                 {/* Personal Data Tab */}
                 <TabsContent value="pessoal">
-                  <form onSubmit={handlePfSubmit} className="space-y-6">
-                    {pfError && (
-                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                        {pfError}
-                      </div>
-                    )}
-                    {pfSuccess && (
-                      <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-                        Dados salvos com sucesso!
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="full_name">Nome completo<span className="text-red-500">*</span></Label>
-                        <Input
-                          id="full_name"
-                          value={pfForm.full_name}
-                          onChange={(e) => setPfForm({ ...pfForm, full_name: e.target.value })}
-                          required
-                          disabled={!pfEditing}
-                          className={!pfEditing ? 'bg-muted' : ''}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="cpf">CPF</Label>
-                        <Input
-                          id="cpf"
-                          value={formatCPF(pfForm.cpf)}
-                          disabled
-                          className="bg-muted"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          O CPF não pode ser alterado
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-lg font-semibold">Seus Dados Pessoais</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Gerencie suas informações pessoais e documentos
                         </p>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Telefone <span className="text-red-500">*</span></Label>
-                        <Input
-                          id="phone"
-                          placeholder="(00) 00000-0000"
-                          value={formatPhone(pfForm.phone)}
-                          onChange={(e) => setPfForm({ ...pfForm, phone: e.target.value })}
-                          disabled={!pfEditing}
-                          required
-                          className={!pfEditing ? 'bg-muted' : ''}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="address_zip">CEP</Label>
-                        <Input
-                          id="address_zip"
-                          placeholder="00000-000"
-                          value={formatCEP(pfForm.address_zip)}
-                          onChange={(e) => setPfForm({ ...pfForm, address_zip: e.target.value })}
-                          disabled={!pfEditing}
-                          className={!pfEditing ? 'bg-muted' : ''}
-                        />
-                      </div>
+                      <Button onClick={openPFDialog} className="flex items-center gap-2">
+                        <Pencil className="h-4 w-4" />
+                        Editar
+                      </Button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="address_street">Rua/Avenida</Label>
-                        <Input
-                          id="address_street"
-                          value={pfForm.address_street}
-                          onChange={(e) => setPfForm({ ...pfForm, address_street: e.target.value })}
-                          disabled={!pfEditing}
-                          className={!pfEditing ? 'bg-muted' : ''}
-                        />
-                      </div>
+                    {/* PF Summary Card */}
+                    <Card className="border">
+                      <CardContent className="pt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Nome completo</p>
+                            <p className="font-medium">{profile?.full_name || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">CPF</p>
+                            <p className="font-medium">{profile?.cpf ? formatCPF(profile.cpf) : '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Telefone</p>
+                            <p className="font-medium">{profile?.phone ? formatPhone(profile.phone) : '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Email</p>
+                            <p className="font-medium">{profile?.email || '-'}</p>
+                          </div>
+                          {profile?.address_street && (
+                            <div className="md:col-span-2">
+                              <p className="text-sm text-muted-foreground">Endereço</p>
+                              <p className="font-medium">
+                                {profile.address_street}
+                                {profile.address_number && `, ${profile.address_number}`}
+                                {profile.address_complement && ` - ${profile.address_complement}`}
+                                {profile.address_neighborhood && `, ${profile.address_neighborhood}`}
+                                {profile.address_city && `, ${profile.address_city}`}
+                                {profile.address_state && ` - ${profile.address_state}`}
+                                {profile.address_zip && `, CEP: ${formatCEP(profile.address_zip)}`}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="address_number">Número</Label>
-                        <Input
-                          id="address_number"
-                          value={pfForm.address_number}
-                          onChange={(e) => setPfForm({ ...pfForm, address_number: e.target.value })}
-                          disabled={!pfEditing}
-                          className={!pfEditing ? 'bg-muted' : ''}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="address_complement">Complemento</Label>
-                        <Input
-                          id="address_complement"
-                          value={pfForm.address_complement}
-                          onChange={(e) => setPfForm({ ...pfForm, address_complement: e.target.value })}
-                          disabled={!pfEditing}
-                          className={!pfEditing ? 'bg-muted' : ''}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="address_neighborhood">Bairro</Label>
-                        <Input
-                          id="address_neighborhood"
-                          value={pfForm.address_neighborhood}
-                          onChange={(e) => setPfForm({ ...pfForm, address_neighborhood: e.target.value })}
-                          disabled={!pfEditing}
-                          className={!pfEditing ? 'bg-muted' : ''}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="address_city">Cidade</Label>
-                        <Input
-                          id="address_city"
-                          value={pfForm.address_city}
-                          onChange={(e) => setPfForm({ ...pfForm, address_city: e.target.value })}
-                          disabled={!pfEditing}
-                          className={!pfEditing ? 'bg-muted' : ''}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="address_state">Estado</Label>
-                        <select
-                          id="address_state"
-                          className={`flex h-9 w-full rounded-md border border-input px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${!pfEditing ? 'bg-muted' : 'bg-transparent'}`}
-                          value={pfForm.address_state}
-                          onChange={(e) => setPfForm({ ...pfForm, address_state: e.target.value })}
-                          disabled={!pfEditing}
-                        >
-                          <option value="">Selecione</option>
-                          <option value="AC">Acre</option>
-                          <option value="AL">Alagoas</option>
-                          <option value="AP">Amapá</option>
-                          <option value="AM">Amazonas</option>
-                          <option value="BA">Bahia</option>
-                          <option value="CE">Ceará</option>
-                          <option value="DF">Distrito Federal</option>
-                          <option value="ES">Espírito Santo</option>
-                          <option value="GO">Goiás</option>
-                          <option value="MA">Maranhão</option>
-                          <option value="MT">Mato Grosso</option>
-                          <option value="MS">Mato Grosso do Sul</option>
-                          <option value="MG">Minas Gerais</option>
-                          <option value="PA">Pará</option>
-                          <option value="PB">Paraíba</option>
-                          <option value="PR">Paraná</option>
-                          <option value="PE">Pernambuco</option>
-                          <option value="PI">Piauí</option>
-                          <option value="RJ">Rio de Janeiro</option>
-                          <option value="RN">Rio Grande do Norte</option>
-                          <option value="RS">Rio Grande do Sul</option>
-                          <option value="RO">Rondônia</option>
-                          <option value="RR">Roraima</option>
-                          <option value="SC">Santa Catarina</option>
-                          <option value="SP">São Paulo</option>
-                          <option value="SE">Sergipe</option>
-                          <option value="TO">Tocantins</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end pt-4 gap-2">
-                      {pfEditing ? (
-                        <>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                              setPfEditing(false)
-                              // Reset form to original profile data
-                              if (profile) {
-                                setPfForm({
-                                  full_name: profile.full_name || '',
-                                  cpf: profile.cpf || '',
-                                  phone: profile.phone || '',
-                                  address_street: profile.address_street || '',
-                                  address_number: profile.address_number || '',
-                                  address_complement: profile.address_complement || '',
-                                  address_neighborhood: profile.address_neighborhood || '',
-                                  address_city: profile.address_city || '',
-                                  address_state: profile.address_state || '',
-                                  address_zip: profile.address_zip || '',
-                                })
-                              }
-                            }}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button type="submit" disabled={pfSaving} className="flex items-center gap-2">
-                            <Save className="h-4 w-4" />
-                            {pfSaving ? 'Salvando...' : 'Salvar alterações'}
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          type="button"
-                          onClick={() => setPfEditing(true)}
-                          className="flex items-center gap-2"
-                        >
-                          <Pencil className="h-4 w-4" />
-                          Editar
-                        </Button>
-                      )}
-                    </div>
-                  </form>
+                    {/* Documents Summary */}
+                    <Card className="border">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          Documentos Pessoais
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingDocuments ? (
+                          <p className="text-sm text-muted-foreground">Carregando documentos...</p>
+                        ) : pfDocuments.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            Nenhum documento enviado. Clique em &quot;Editar&quot; para enviar seus documentos.
+                          </p>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {pfDocuments.map((doc) => (
+                              <Badge
+                                key={doc.id}
+                                variant={
+                                  doc.status === 'APPROVED' ? 'success' :
+                                  doc.status === 'REJECTED' ? 'destructive' :
+                                  doc.status === 'UNDER_REVIEW' ? 'warning' : 'secondary'
+                                }
+                              >
+                                {doc.document_type.replace('PF_', '').replace(/_/g, ' ')}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
                 </TabsContent>
 
                 {/* Companies Tab */}
@@ -874,38 +682,6 @@ export default function MeusDadosPage() {
                   </div>
                 </TabsContent>
 
-                {/* Documents Tab */}
-                <TabsContent value="documentos">
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold">Documentos Pessoais</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Envie os documentos necessários para validar sua conta
-                      </p>
-                    </div>
-
-                    {loadingDocuments ? (
-                      <div className="text-center py-12">
-                        <p className="text-muted-foreground">Carregando documentos...</p>
-                      </div>
-                    ) : (
-                      <DocumentList
-                        ownerId={user.id}
-                        ownerType="PF"
-                        documentTypes={['PF_RG', 'PF_CPF', 'PF_INCOME_TAX'] as DocumentType[]}
-                        documents={pfDocuments}
-                        onDocumentChange={setPfDocuments}
-                      />
-                    )}
-
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm text-blue-800">
-                        <strong>Importante:</strong> Os documentos enviados serão analisados pela nossa equipe.
-                        Você será notificado quando a análise for concluída.
-                      </p>
-                    </div>
-                  </div>
-                </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
@@ -1122,6 +898,208 @@ export default function MeusDadosPage() {
               </Button>
               <Button type="submit" disabled={pjSaving}>
                 {pjSaving ? 'Salvando...' : editingPJ ? 'Salvar alterações' : 'Cadastrar empresa'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* PF Dialog */}
+      <Dialog open={showPFDialog} onOpenChange={setShowPFDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Dados Pessoais</DialogTitle>
+            <DialogDescription>
+              Atualize suas informações pessoais e envie os documentos necessários
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handlePFDialogSubmit} className="space-y-6 mt-4">
+            {pfError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {pfError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pf_full_name">Nome completo *</Label>
+                <Input
+                  id="pf_full_name"
+                  value={pfForm.full_name}
+                  onChange={(e) => setPfForm({ ...pfForm, full_name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pf_cpf">CPF</Label>
+                <Input
+                  id="pf_cpf"
+                  value={formatCPF(pfForm.cpf)}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">
+                  O CPF não pode ser alterado
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pf_phone">Telefone *</Label>
+                <Input
+                  id="pf_phone"
+                  placeholder="(00) 00000-0000"
+                  value={formatPhone(pfForm.phone)}
+                  onChange={(e) => setPfForm({ ...pfForm, phone: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pf_address_zip">CEP</Label>
+                <Input
+                  id="pf_address_zip"
+                  placeholder="00000-000"
+                  value={formatCEP(pfForm.address_zip)}
+                  onChange={(e) => setPfForm({ ...pfForm, address_zip: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pf_address_street">Rua/Avenida</Label>
+                <Input
+                  id="pf_address_street"
+                  value={pfForm.address_street}
+                  onChange={(e) => setPfForm({ ...pfForm, address_street: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pf_address_number">Número</Label>
+                <Input
+                  id="pf_address_number"
+                  value={pfForm.address_number}
+                  onChange={(e) => setPfForm({ ...pfForm, address_number: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pf_address_complement">Complemento</Label>
+                <Input
+                  id="pf_address_complement"
+                  value={pfForm.address_complement}
+                  onChange={(e) => setPfForm({ ...pfForm, address_complement: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pf_address_neighborhood">Bairro</Label>
+                <Input
+                  id="pf_address_neighborhood"
+                  value={pfForm.address_neighborhood}
+                  onChange={(e) => setPfForm({ ...pfForm, address_neighborhood: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pf_address_city">Cidade</Label>
+                <Input
+                  id="pf_address_city"
+                  value={pfForm.address_city}
+                  onChange={(e) => setPfForm({ ...pfForm, address_city: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pf_address_state">Estado</Label>
+                <select
+                  id="pf_address_state"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={pfForm.address_state}
+                  onChange={(e) => setPfForm({ ...pfForm, address_state: e.target.value })}
+                >
+                  <option value="">Selecione</option>
+                  <option value="AC">Acre</option>
+                  <option value="AL">Alagoas</option>
+                  <option value="AP">Amapá</option>
+                  <option value="AM">Amazonas</option>
+                  <option value="BA">Bahia</option>
+                  <option value="CE">Ceará</option>
+                  <option value="DF">Distrito Federal</option>
+                  <option value="ES">Espírito Santo</option>
+                  <option value="GO">Goiás</option>
+                  <option value="MA">Maranhão</option>
+                  <option value="MT">Mato Grosso</option>
+                  <option value="MS">Mato Grosso do Sul</option>
+                  <option value="MG">Minas Gerais</option>
+                  <option value="PA">Pará</option>
+                  <option value="PB">Paraíba</option>
+                  <option value="PR">Paraná</option>
+                  <option value="PE">Pernambuco</option>
+                  <option value="PI">Piauí</option>
+                  <option value="RJ">Rio de Janeiro</option>
+                  <option value="RN">Rio Grande do Norte</option>
+                  <option value="RS">Rio Grande do Sul</option>
+                  <option value="RO">Rondônia</option>
+                  <option value="RR">Roraima</option>
+                  <option value="SC">Santa Catarina</option>
+                  <option value="SP">São Paulo</option>
+                  <option value="SE">Sergipe</option>
+                  <option value="TO">Tocantins</option>
+                </select>
+              </div>
+            </div>
+
+            {/* PF Documents Section */}
+            <div className="border-t pt-6 mt-6">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-base font-semibold">Documentos Pessoais</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Envie os documentos necessários para validar sua conta
+                  </p>
+                </div>
+
+                {loadingDocuments ? (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-muted-foreground">Carregando documentos...</p>
+                  </div>
+                ) : (
+                  <DocumentList
+                    ownerId={user.id}
+                    ownerType="PF"
+                    documentTypes={['PF_RG', 'PF_CPF', 'PF_INCOME_TAX'] as DocumentType[]}
+                    documents={pfDocuments}
+                    onDocumentChange={setPfDocuments}
+                  />
+                )}
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Importante:</strong> Os documentos enviados serão analisados pela nossa equipe.
+                    Você será notificado quando a análise for concluída.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPFDialog(false)}
+              >
+                Fechar
+              </Button>
+              <Button type="submit" disabled={pfSaving}>
+                {pfSaving ? 'Salvando...' : 'Salvar alterações'}
               </Button>
             </DialogFooter>
           </form>
