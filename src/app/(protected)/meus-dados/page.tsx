@@ -157,28 +157,29 @@ export default function MeusDadosPage() {
     }
   }, [profile])
 
-  // Fetch companies
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      setLoadingCompanies(true)
-      const { data, error } = await supabase
-        .from('profiles_pj')
-        .select('*')
-        .eq('pf_id', user!.id)
-        .order('created_at', { ascending: false })
+  // Fetch companies function (reusable)
+  const fetchCompanies = async () => {
+    if (!user) return
+    setLoadingCompanies(true)
+    const { data, error } = await supabase
+      .from('profiles_pj')
+      .select('*')
+      .eq('pf_id', user.id)
+      .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Error fetching companies:', error)
-      } else {
-        setCompanies(data || [])
-      }
-      setLoadingCompanies(false)
+    if (error) {
+      console.error('Error fetching companies:', error)
+    } else {
+      setCompanies(data || [])
     }
+    setLoadingCompanies(false)
+  }
 
+  // Fetch companies on mount
+  useEffect(() => {
     if (user) {
       fetchCompanies()
     } else if (!authLoading) {
-      // User is not logged in and auth is done loading
       setLoadingCompanies(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
@@ -454,8 +455,37 @@ export default function MeusDadosPage() {
   }
 
   const handleDeletePJ = async (pjId: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta empresa?')) return
+    if (!confirm('Tem certeza que deseja excluir esta empresa? Todos os documentos associados também serão excluídos.')) return
 
+    // 1. Get all documents for this PJ
+    const { data: docs } = await supabase
+      .from('documents')
+      .select('id, file_url')
+      .eq('owner_id', pjId)
+      .eq('owner_type', 'PJ')
+
+    // 2. Delete files from Storage
+    if (docs && docs.length > 0) {
+      const filePaths = docs.map((doc) => {
+        // Extract path from URL: .../documents-pj/pjId/filename
+        const url = doc.file_url
+        const match = url.match(/documents-pj\/(.+)$/)
+        return match ? match[1] : null
+      }).filter(Boolean) as string[]
+
+      if (filePaths.length > 0) {
+        await supabase.storage.from('documents-pj').remove(filePaths)
+      }
+
+      // 3. Delete document records from database
+      await supabase
+        .from('documents')
+        .delete()
+        .eq('owner_id', pjId)
+        .eq('owner_type', 'PJ')
+    }
+
+    // 4. Delete the PJ record
     const { error } = await supabase
       .from('profiles_pj')
       .delete()
@@ -466,6 +496,11 @@ export default function MeusDadosPage() {
       alert('Erro ao excluir empresa.')
     } else {
       setCompanies(companies.filter((c) => c.id !== pjId))
+      addToast({
+        title: 'Empresa excluída',
+        description: 'A empresa e seus documentos foram excluídos com sucesso.',
+        variant: 'success',
+      })
     }
   }
 
@@ -689,7 +724,13 @@ export default function MeusDadosPage() {
       </section>
 
       {/* PJ Dialog */}
-      <Dialog open={showPJDialog} onOpenChange={setShowPJDialog}>
+      <Dialog open={showPJDialog} onOpenChange={(open) => {
+        setShowPJDialog(open)
+        if (!open) {
+          // Refresh companies list when dialog closes to get updated status
+          fetchCompanies()
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -875,6 +916,19 @@ export default function MeusDadosPage() {
                       documentTypes={['PJ_ARTICLES_OF_INCORPORATION', 'PJ_PROOF_OF_ADDRESS', 'PJ_DRE', 'PJ_STATEMENT', 'PJ_EXTRA'] as DocumentType[]}
                       documents={pjDocuments}
                       onDocumentChange={setPjDocuments}
+                      onPJStatusChange={() => {
+                        // Update the editingPJ status in state
+                        if (editingPJ) {
+                          setEditingPJ({ ...editingPJ, status: 'PENDING_REVIEW' })
+                        }
+                        // Refresh companies list
+                        fetchCompanies()
+                        addToast({
+                          title: 'Documentos enviados!',
+                          description: 'A empresa está agora em análise.',
+                          variant: 'success',
+                        })
+                      }}
                     />
                   )}
 

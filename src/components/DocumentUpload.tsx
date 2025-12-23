@@ -332,6 +332,7 @@ interface DocumentListProps {
   documentTypes: DocumentType[]
   documents: Document[]
   onDocumentChange?: (documents: Document[]) => void
+  onPJStatusChange?: () => void
 }
 
 export function DocumentList({
@@ -340,6 +341,7 @@ export function DocumentList({
   documentTypes,
   documents,
   onDocumentChange,
+  onPJStatusChange,
 }: DocumentListProps) {
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
@@ -376,14 +378,18 @@ export function DocumentList({
 
     if (allRequiredDocsUploaded) {
       // Update PJ status to PENDING_REVIEW
-      const { error: updateError } = await supabase
+      const { error: updateError, data } = await supabase
         .from('profiles_pj')
         .update({ status: 'PENDING_REVIEW' })
         .eq('id', ownerId)
         .eq('status', 'INCOMPLETE') // Only update if still INCOMPLETE
+        .select()
 
       if (updateError) {
         console.error('Error updating PJ status:', updateError)
+      } else if (data && data.length > 0) {
+        // Status was updated, notify parent
+        onPJStatusChange?.()
       }
     }
   }
