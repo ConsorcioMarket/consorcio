@@ -1,5 +1,6 @@
 import { PrismaClient, CotaStatus, PFStatus, PJStatus, ProposalStatus, DocumentStatus, BuyerType, OwnerType, DocumentType } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
+import { realCotasData } from './data/cotas-data'
 
 const prisma = new PrismaClient()
 
@@ -13,29 +14,40 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   },
 })
 
-// Brazilian consortium administrators (used in cotasData)
-const _administrators = [
-  'Bradesco Consórcio',
-  'Itaú Consórcio',
-  'Porto Seguro Consórcio',
-  'Rodobens Consórcio',
-  'Caixa Consórcio',
-  'Santander Consórcio',
-  'Embracon Consórcio',
-  'Gazin Consórcio',
+// Realistic Brazilian seller accounts
+const sellers = [
+  {
+    email: 'joao.silva@example.com',
+    password: 'Senha@123',
+    name: 'João da Silva',
+    phone: '11987654321',
+    cpf: '12345678901',
+  },
+  {
+    email: 'maria.santos@example.com',
+    password: 'Senha@123',
+    name: 'Maria Santos',
+    phone: '11976543210',
+    cpf: '23456789012',
+  },
+  {
+    email: 'pedro.oliveira@example.com',
+    password: 'Senha@123',
+    name: 'Pedro Oliveira',
+    phone: '11965432109',
+    cpf: '34567890123',
+  },
+  {
+    email: 'ana.costa@example.com',
+    password: 'Senha@123',
+    name: 'Ana Costa',
+    phone: '11954321098',
+    cpf: '45678901234',
+  },
 ]
-void _administrators // suppress unused warning
 
 // Test user configurations
 const testUsers = {
-  seller: {
-    email: 'vendedor@demo.consorciomarket.com.br',
-    password: 'Demo123!',
-    name: 'Carlos Silva (Vendedor)',
-    phone: '11999887766',
-    cpf: '12345678901',
-    status: PFStatus.APPROVED, // Seller is approved
-  },
   buyerPF: {
     email: 'comprador.pf@demo.consorciomarket.com.br',
     password: 'Demo123!',
@@ -61,8 +73,8 @@ const testUsers = {
     status: PFStatus.INCOMPLETE, // Incomplete profile
   },
   admin: {
-    email: 'admin@demo.consorciomarket.com.br',
-    password: 'Admin123!',
+    email: 'admin@consorciomarket.com.br',
+    password: 'Admin@123',
     name: 'Administrador Sistema',
     phone: '11955443322',
     cpf: '00000000000',
@@ -177,34 +189,9 @@ function calculateMonthlyRate(
   return null
 }
 
-// Generate realistic cota data
-function generateCotaData(sellerId: string, administrator: string, creditAmount: number, status: CotaStatus) {
-  const outstandingPercentage = 0.3 + Math.random() * 0.4
-  const outstandingBalance = Math.round(creditAmount * outstandingPercentage)
-  const nInstallments = Math.round(80 + Math.random() * 100)
-  // Calculate a realistic installment value that results in a positive rate
-  // Using a slightly higher installment to ensure positive rate
-  const baseInstallment = outstandingBalance / nInstallments
-  const installmentValue = Math.round(baseInstallment * (1.005 + Math.random() * 0.01) * 100) / 100
-  const entryPercentage = Math.round((15 + Math.random() * 25) * 100) / 100
-  const entryAmount = Math.round(creditAmount * (entryPercentage / 100))
-
-  // Calculate the actual monthly rate using the RATE formula
-  const monthlyRate = calculateMonthlyRate(nInstallments, -installmentValue, outstandingBalance)
-
-  return {
-    sellerId,
-    administrator,
-    creditAmount,
-    outstandingBalance,
-    nInstallments,
-    installmentValue,
-    entryAmount,
-    entryPercentage,
-    monthlyRate,
-    status,
-  }
-}
+// Note: generateCotaData is no longer used since we're using real client data
+// Kept for reference only
+void calculateMonthlyRate // suppress unused warning
 
 async function main() {
   console.log('🌱 Starting comprehensive seed...\n')
@@ -214,7 +201,16 @@ async function main() {
   // ============================================
   console.log('👤 Creating users...')
 
-  const sellerId = await getOrCreateUser(testUsers.seller)
+  // Create sellers
+  const sellerIds: string[] = []
+  for (const seller of sellers) {
+    const sellerId = await getOrCreateUser({
+      ...seller,
+      status: PFStatus.APPROVED,
+    })
+    sellerIds.push(sellerId)
+  }
+
   const buyerPFId = await getOrCreateUser(testUsers.buyerPF)
   const buyerPFPendingId = await getOrCreateUser(testUsers.buyerPFPending)
   // Create buyer with incomplete profile for demo purposes
@@ -268,120 +264,99 @@ async function main() {
   // ============================================
   // 3. CREATE COTAS
   // ============================================
-  console.log('📄 Creating cotas...')
+  console.log('📄 Creating cotas from real client data...')
 
-  // Delete existing cotas from seller to recreate fresh
-  await prisma.cota.deleteMany({ where: { sellerId } })
-
-  const cotasData = [
-    { admin: 'Bradesco Consórcio', credit: 250000, status: CotaStatus.AVAILABLE },
-    { admin: 'Itaú Consórcio', credit: 350000, status: CotaStatus.AVAILABLE },
-    { admin: 'Porto Seguro Consórcio', credit: 180000, status: CotaStatus.AVAILABLE },
-    { admin: 'Rodobens Consórcio', credit: 420000, status: CotaStatus.AVAILABLE },
-    { admin: 'Caixa Consórcio', credit: 300000, status: CotaStatus.RESERVED }, // Has approved proposal
-    { admin: 'Santander Consórcio', credit: 275000, status: CotaStatus.AVAILABLE }, // Has pending proposal
-    { admin: 'Embracon Consórcio', credit: 500000, status: CotaStatus.AVAILABLE },
-    { admin: 'Gazin Consórcio', credit: 150000, status: CotaStatus.SOLD },
-  ]
+  // Delete existing cotas to recreate fresh
+  await prisma.cota.deleteMany({})
 
   const createdCotas: { id: string; administrator: string; creditAmount: number; status: CotaStatus }[] = []
 
-  for (const cotaConfig of cotasData) {
-    const cotaData = generateCotaData(sellerId, cotaConfig.admin, cotaConfig.credit, cotaConfig.status)
-    const cota = await prisma.cota.create({ data: cotaData })
+  // Distribute 67 real cotas among sellers
+  for (let i = 0; i < realCotasData.length; i++) {
+    const cotaData = realCotasData[i]
+    const sellerId = sellerIds[i % sellerIds.length] // Rotate through sellers
+
+    const cota = await prisma.cota.create({
+      data: {
+        sellerId,
+        administrator: cotaData.administrator,
+        creditAmount: cotaData.creditAmount.toString(),
+        outstandingBalance: cotaData.outstandingBalance.toString(),
+        nInstallments: cotaData.nInstallments,
+        installmentValue: cotaData.installmentValue.toString(),
+        entryAmount: cotaData.entryAmount.toString(),
+        entryPercentage: cotaData.entryPercentage.toString(),
+        monthlyRate: cotaData.monthlyRate ? cotaData.monthlyRate.toString() : null,
+        status: CotaStatus.AVAILABLE,
+      },
+    })
+
     createdCotas.push({
       id: cota.id,
       administrator: cota.administrator,
       creditAmount: Number(cota.creditAmount),
       status: cota.status,
     })
-    console.log(`  Created: ${cotaConfig.admin} - R$ ${cotaConfig.credit.toLocaleString('pt-BR')} (${cotaConfig.status})`)
   }
+
+  console.log(`  Created: ${realCotasData.length} cotas from Caixa Consórcios`)
+  console.log(`  Distributed among ${sellerIds.length} sellers`)
 
   console.log('')
 
   // ============================================
-  // 4. CREATE PROPOSALS
+  // 4. CREATE SAMPLE PROPOSALS (OPTIONAL - FOR DEMO)
   // ============================================
-  console.log('📝 Creating proposals...')
+  console.log('📝 Creating sample proposals...')
 
   // Delete existing proposals
   await prisma.proposal.deleteMany({})
 
-  // Proposal 1: APPROVED (for reserved cota - Caixa)
-  const reservedCota = createdCotas.find(c => c.status === CotaStatus.RESERVED)!
+  // Create a few sample proposals for demo purposes
+  const sampleCota1 = createdCotas[0]
+  const sampleCota2 = createdCotas[1]
+  const sampleCota3 = createdCotas[2]
+
   const proposal1 = await prisma.proposal.create({
     data: {
-      cotaId: reservedCota.id,
+      cotaId: sampleCota1.id,
       buyerPfId: buyerPFId,
       buyerType: BuyerType.PF,
       buyerEntityId: buyerPFId,
-      status: ProposalStatus.APPROVED,
-      transferFee: 2500,
+      status: ProposalStatus.UNDER_REVIEW,
     },
   })
-  console.log(`  Created: Proposal APPROVED (${reservedCota.administrator})`)
+  console.log(`  Created: Proposal UNDER_REVIEW (${sampleCota1.administrator})`)
 
-  // Proposal 2: PRE_APPROVED (waiting for docs - Santander)
-  const santanderCota = createdCotas.find(c => c.administrator === 'Santander Consórcio')!
   await prisma.proposal.create({
     data: {
-      cotaId: santanderCota.id,
+      cotaId: sampleCota2.id,
       buyerPfId: buyerPFId,
       buyerType: BuyerType.PJ,
       buyerEntityId: approvedPJ.id,
       status: ProposalStatus.PRE_APPROVED,
     },
   })
-  console.log(`  Created: Proposal PRE_APPROVED (${santanderCota.administrator}) - PJ buyer`)
+  console.log(`  Created: Proposal PRE_APPROVED (${sampleCota2.administrator}) - PJ buyer`)
 
-  // Proposal 3: UNDER_REVIEW (new proposal - Embracon)
-  const embraconCota = createdCotas.find(c => c.administrator === 'Embracon Consórcio')!
-  await prisma.proposal.create({
+  const proposal3 = await prisma.proposal.create({
     data: {
-      cotaId: embraconCota.id,
+      cotaId: sampleCota3.id,
       buyerPfId: buyerPFPendingId,
       buyerType: BuyerType.PF,
       buyerEntityId: buyerPFPendingId,
-      status: ProposalStatus.UNDER_REVIEW,
-    },
-  })
-  console.log(`  Created: Proposal UNDER_REVIEW (${embraconCota.administrator}) - pending buyer`)
-
-  // Proposal 4: REJECTED
-  const itauCota = createdCotas.find(c => c.administrator === 'Itaú Consórcio')!
-  const proposal4 = await prisma.proposal.create({
-    data: {
-      cotaId: itauCota.id,
-      buyerPfId: buyerPFId,
-      buyerType: BuyerType.PF,
-      buyerEntityId: buyerPFId,
       status: ProposalStatus.REJECTED,
       rejectionReason: 'Documentação incompleta. Por favor, envie comprovante de renda atualizado.',
     },
   })
-  console.log(`  Created: Proposal REJECTED (${itauCota.administrator})`)
-
-  // Proposal 5: COMPLETED (for sold cota)
-  const soldCota = createdCotas.find(c => c.status === CotaStatus.SOLD)!
-  const proposal5 = await prisma.proposal.create({
-    data: {
-      cotaId: soldCota.id,
-      buyerPfId: buyerPFId,
-      buyerType: BuyerType.PF,
-      buyerEntityId: buyerPFId,
-      status: ProposalStatus.COMPLETED,
-      transferFee: 1800,
-    },
-  })
-  console.log(`  Created: Proposal COMPLETED (${soldCota.administrator})`)
+  console.log(`  Created: Proposal REJECTED (${sampleCota3.administrator})`)
 
   console.log('')
 
   // ============================================
-  // 5. CREATE DOCUMENTS
+  // 5. CREATE SAMPLE DOCUMENTS
   // ============================================
-  console.log('📎 Creating documents...')
+  console.log('📎 Creating sample documents...')
 
   // Delete existing documents
   await prisma.document.deleteMany({})
@@ -451,49 +426,32 @@ async function main() {
   }
   console.log(`  Created: 2 PJ documents for approved company (APPROVED)`)
 
-  // Cota statement for reserved cota (APPROVED)
+  // Sample cota statements
   await prisma.document.create({
     data: {
-      ownerId: reservedCota.id,
+      ownerId: sampleCota1.id,
       ownerType: OwnerType.COTA,
       documentType: DocumentType.COTA_STATEMENT,
-      fileUrl: 'https://storage.example.com/docs/extrato_caixa.pdf',
-      fileName: 'extrato_caixa.pdf',
+      fileUrl: 'https://storage.example.com/docs/extrato_caixa_1.pdf',
+      fileName: 'extrato_caixa_1.pdf',
+      status: DocumentStatus.UNDER_REVIEW,
+    },
+  })
+  console.log(`  Created: Cota statement for sample cota 1 (UNDER_REVIEW)`)
+
+  await prisma.document.create({
+    data: {
+      ownerId: sampleCota2.id,
+      ownerType: OwnerType.COTA,
+      documentType: DocumentType.COTA_STATEMENT,
+      fileUrl: 'https://storage.example.com/docs/extrato_caixa_2.pdf',
+      fileName: 'extrato_caixa_2.pdf',
       status: DocumentStatus.APPROVED,
       reviewedBy: adminId,
       reviewedAt: new Date(),
     },
   })
-  console.log(`  Created: Cota statement for ${reservedCota.administrator} (APPROVED)`)
-
-  // Cota statement for santander (UNDER_REVIEW - blocking approval)
-  await prisma.document.create({
-    data: {
-      ownerId: santanderCota.id,
-      ownerType: OwnerType.COTA,
-      documentType: DocumentType.COTA_STATEMENT,
-      fileUrl: 'https://storage.example.com/docs/extrato_santander.pdf',
-      fileName: 'extrato_santander.pdf',
-      status: DocumentStatus.UNDER_REVIEW,
-    },
-  })
-  console.log(`  Created: Cota statement for ${santanderCota.administrator} (UNDER_REVIEW - blocking proposal approval)`)
-
-  // Cota statement REJECTED example
-  await prisma.document.create({
-    data: {
-      ownerId: itauCota.id,
-      ownerType: OwnerType.COTA,
-      documentType: DocumentType.COTA_STATEMENT,
-      fileUrl: 'https://storage.example.com/docs/extrato_itau.pdf',
-      fileName: 'extrato_itau.pdf',
-      status: DocumentStatus.REJECTED,
-      rejectionReason: 'Documento ilegível. Por favor, envie uma cópia com melhor qualidade.',
-      reviewedBy: adminId,
-      reviewedAt: new Date(),
-    },
-  })
-  console.log(`  Created: Cota statement for ${itauCota.administrator} (REJECTED)`)
+  console.log(`  Created: Cota statement for sample cota 2 (APPROVED)`)
 
   console.log('')
 
@@ -502,36 +460,22 @@ async function main() {
   // ============================================
   console.log('📜 Creating proposal history...')
 
-  // History for approved proposal
+  // History for UNDER_REVIEW proposal
   await prisma.proposalHistory.createMany({
     data: [
       { proposalId: proposal1.id, oldStatus: null, newStatus: ProposalStatus.UNDER_REVIEW, changedBy: buyerPFId, notes: 'Proposta criada' },
-      { proposalId: proposal1.id, oldStatus: ProposalStatus.UNDER_REVIEW, newStatus: ProposalStatus.PRE_APPROVED, changedBy: adminId, notes: 'Documentos do comprador verificados' },
-      { proposalId: proposal1.id, oldStatus: ProposalStatus.PRE_APPROVED, newStatus: ProposalStatus.APPROVED, changedBy: adminId, notes: 'Extrato da cota aprovado. Proposta aprovada.' },
     ],
   })
-  console.log(`  Created: 3 history entries for approved proposal`)
+  console.log(`  Created: 1 history entry for UNDER_REVIEW proposal`)
 
   // History for rejected proposal
   await prisma.proposalHistory.createMany({
     data: [
-      { proposalId: proposal4.id, oldStatus: null, newStatus: ProposalStatus.UNDER_REVIEW, changedBy: buyerPFId, notes: 'Proposta criada' },
-      { proposalId: proposal4.id, oldStatus: ProposalStatus.UNDER_REVIEW, newStatus: ProposalStatus.REJECTED, changedBy: adminId, notes: 'Documentação incompleta' },
+      { proposalId: proposal3.id, oldStatus: null, newStatus: ProposalStatus.UNDER_REVIEW, changedBy: buyerPFPendingId, notes: 'Proposta criada' },
+      { proposalId: proposal3.id, oldStatus: ProposalStatus.UNDER_REVIEW, newStatus: ProposalStatus.REJECTED, changedBy: adminId, notes: 'Documentação incompleta' },
     ],
   })
   console.log(`  Created: 2 history entries for rejected proposal`)
-
-  // History for completed proposal
-  await prisma.proposalHistory.createMany({
-    data: [
-      { proposalId: proposal5.id, oldStatus: null, newStatus: ProposalStatus.UNDER_REVIEW, changedBy: buyerPFId },
-      { proposalId: proposal5.id, oldStatus: ProposalStatus.UNDER_REVIEW, newStatus: ProposalStatus.PRE_APPROVED, changedBy: adminId },
-      { proposalId: proposal5.id, oldStatus: ProposalStatus.PRE_APPROVED, newStatus: ProposalStatus.APPROVED, changedBy: adminId },
-      { proposalId: proposal5.id, oldStatus: ProposalStatus.APPROVED, newStatus: ProposalStatus.TRANSFER_STARTED, changedBy: adminId, notes: 'Pagamento confirmado. Transferência iniciada.' },
-      { proposalId: proposal5.id, oldStatus: ProposalStatus.TRANSFER_STARTED, newStatus: ProposalStatus.COMPLETED, changedBy: adminId, notes: 'Transferência concluída com sucesso!' },
-    ],
-  })
-  console.log(`  Created: 5 history entries for completed proposal`)
 
   console.log('')
 
@@ -552,10 +496,13 @@ async function main() {
   console.log('└─────────────────────────────────────────────────────────────┘')
   console.log('')
   console.log('┌─────────────────────────────────────────────────────────────┐')
-  console.log('│ SELLER (has cotas to sell)                                  │')
+  console.log('│ SELLERS (have cotas to sell)                                │')
   console.log('├─────────────────────────────────────────────────────────────┤')
-  console.log(`│ Email:    ${testUsers.seller.email.padEnd(45)}│`)
-  console.log(`│ Password: ${testUsers.seller.password.padEnd(45)}│`)
+  for (const seller of sellers) {
+    console.log(`│ Email:    ${seller.email.padEnd(45)}│`)
+    console.log(`│ Password: ${seller.password.padEnd(45)}│`)
+    console.log('├─────────────────────────────────────────────────────────────┤')
+  }
   console.log('└─────────────────────────────────────────────────────────────┘')
   console.log('')
   console.log('┌─────────────────────────────────────────────────────────────┐')
@@ -580,18 +527,15 @@ async function main() {
   console.log('└─────────────────────────────────────────────────────────────┘')
   console.log('')
   console.log('📊 DATA SUMMARY:')
-  console.log(`   • ${cotasData.length} cotas (various statuses)`)
-  console.log(`   • 5 proposals (UNDER_REVIEW, PRE_APPROVED, APPROVED, REJECTED, COMPLETED)`)
+  console.log(`   • ${realCotasData.length} real cotas from Caixa Consórcios (all AVAILABLE)`)
+  console.log(`   • Distributed among ${sellers.length} sellers`)
+  console.log(`   • 3 sample proposals (UNDER_REVIEW, PRE_APPROVED, REJECTED)`)
   console.log(`   • 2 companies (1 APPROVED, 1 PENDING_REVIEW)`)
-  console.log(`   • Multiple documents (APPROVED, UNDER_REVIEW, REJECTED, PENDING_UPLOAD)`)
+  console.log(`   • Multiple documents (APPROVED, UNDER_REVIEW, PENDING_UPLOAD)`)
   console.log('')
-  console.log('🔒 BUSINESS RULES DEMO:')
-  console.log('   • PRE_APPROVED → APPROVED requires:')
-  console.log('     1. Approved cota statement document')
-  console.log('     2. Approved buyer entity (PF or PJ)')
-  console.log('')
-  console.log('   The Santander proposal (PRE_APPROVED) cannot be approved because')
-  console.log('   the cota statement is still UNDER_REVIEW.')
+  console.log('📝 NOTE:')
+  console.log('   • All cotas are from real client data (Caixa Consórcios)')
+  console.log('   • Admin can manage all cotas via Admin panel after seed')
   console.log('')
 }
 

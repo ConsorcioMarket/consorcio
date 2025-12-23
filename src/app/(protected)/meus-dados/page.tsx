@@ -83,6 +83,7 @@ export default function MeusDadosPage() {
   const supabase = createClient()
 
   // PF Form State
+  const [showPFDialog, setShowPFDialog] = useState(false)
   const [pfForm, setPfForm] = useState({
     full_name: '',
     cpf: '',
@@ -95,10 +96,10 @@ export default function MeusDadosPage() {
     address_state: '',
     address_zip: '',
   })
-  const [pfEditing, setPfEditing] = useState(false)
   const [pfSaving, setPfSaving] = useState(false)
-  const [pfSuccess, setPfSuccess] = useState(false)
   const [pfError, setPfError] = useState<string | null>(null)
+  const [pfEditing, setPfEditing] = useState(false)
+  const [pfSuccess, setPfSuccess] = useState(false)
 
   // PJ State
   const [companies, setCompanies] = useState<ProfilePJ[]>([])
@@ -124,6 +125,8 @@ export default function MeusDadosPage() {
   // Documents State
   const [pfDocuments, setPfDocuments] = useState<Document[]>([])
   const [loadingDocuments, setLoadingDocuments] = useState(true)
+  const [pjDocuments, setPjDocuments] = useState<Document[]>([])
+  const [loadingPjDocuments, setLoadingPjDocuments] = useState(false)
 
   // Track if form has been initialized from profile
   const pfFormInitialized = useRef(false)
@@ -273,6 +276,96 @@ export default function MeusDadosPage() {
     setPfSaving(false)
   }
 
+  const openPFDialog = async () => {
+    // Load PF form data
+    if (profile) {
+      setPfForm({
+        full_name: profile.full_name || '',
+        cpf: profile.cpf || '',
+        phone: profile.phone || '',
+        address_street: profile.address_street || '',
+        address_number: profile.address_number || '',
+        address_complement: profile.address_complement || '',
+        address_neighborhood: profile.address_neighborhood || '',
+        address_city: profile.address_city || '',
+        address_state: profile.address_state || '',
+        address_zip: profile.address_zip || '',
+      })
+    }
+    setPfError(null)
+    setShowPFDialog(true)
+
+    // Load PF documents
+    setLoadingDocuments(true)
+    const { data, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('owner_id', user?.id || '')
+      .eq('owner_type', 'PF')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching PF documents:', error)
+    } else {
+      setPfDocuments(data || [])
+    }
+    setLoadingDocuments(false)
+  }
+
+  const handlePFDialogSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+
+    setPfSaving(true)
+    setPfError(null)
+
+    // Validate required phone field
+    const phoneDigits = pfForm.phone.replace(/\D/g, '')
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      setPfError('Por favor, informe um telefone válido com DDD (10 ou 11 dígitos).')
+      setPfSaving(false)
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('profiles_pf')
+      .update({
+        full_name: pfForm.full_name,
+        phone: pfForm.phone.replace(/\D/g, ''),
+        address_street: pfForm.address_street || null,
+        address_number: pfForm.address_number || null,
+        address_complement: pfForm.address_complement || null,
+        address_neighborhood: pfForm.address_neighborhood || null,
+        address_city: pfForm.address_city || null,
+        address_state: pfForm.address_state || null,
+        address_zip: pfForm.address_zip.replace(/\D/g, '') || null,
+      })
+      .eq('id', user.id)
+      .select()
+
+    if (error) {
+      if (error.code === '42501' || error.message?.includes('permission denied')) {
+        setPfError('Permissão negada. Por favor, faça logout e login novamente.')
+      } else if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+        setPfError('Sua sessão expirou. Por favor, faça logout e login novamente.')
+      } else {
+        setPfError(`Erro ao salvar dados: ${error.message || error.code || 'Erro desconhecido'}`)
+      }
+    } else if (!data || data.length === 0) {
+      setPfError('Não foi possível atualizar o perfil. Sua sessão pode ter expirado.')
+    } else {
+      await refreshProfile()
+      addToast({
+        title: 'Dados salvos!',
+        description: 'Suas informações foram atualizadas com sucesso.',
+        variant: 'success',
+      })
+      // Don't close dialog - let user upload documents
+    }
+
+    setPfSaving(false)
+  }
+
   const openNewPJDialog = () => {
     setEditingPJ(null)
     setPjForm({
@@ -289,10 +382,11 @@ export default function MeusDadosPage() {
       address_zip: '',
     })
     setPjError(null)
+    setPjDocuments([])
     setShowPJDialog(true)
   }
 
-  const openEditPJDialog = (pj: ProfilePJ) => {
+  const openEditPJDialog = async (pj: ProfilePJ) => {
     setEditingPJ(pj)
     setPjForm({
       legal_name: pj.legal_name || '',
@@ -309,6 +403,22 @@ export default function MeusDadosPage() {
     })
     setPjError(null)
     setShowPJDialog(true)
+
+    // Load PJ documents
+    setLoadingPjDocuments(true)
+    const { data, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('owner_id', pj.id)
+      .eq('owner_type', 'PJ')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching PJ documents:', error)
+    } else {
+      setPjDocuments(data || [])
+    }
+    setLoadingPjDocuments(false)
   }
 
   const handlePJSubmit = async (e: React.FormEvent) => {
@@ -334,25 +444,32 @@ export default function MeusDadosPage() {
     }
 
     let error
+    let savedPJ: ProfilePJ | null = null
+
     if (editingPJ) {
       // Update existing
       const result = await supabase
         .from('profiles_pj')
         .update(pjData)
         .eq('id', editingPJ.id)
+        .select()
       error = result.error
+      savedPJ = result.data?.[0] || null
     } else {
       // Insert new - generate UUID for id and add timestamps
       const now = new Date().toISOString()
+      const newPJId = crypto.randomUUID()
       const result = await supabase
         .from('profiles_pj')
         .insert({
-          id: crypto.randomUUID(),
+          id: newPJId,
           ...pjData,
           created_at: now,
           updated_at: now,
         })
+        .select()
       error = result.error
+      savedPJ = result.data?.[0] || null
     }
 
     if (error) {
@@ -374,7 +491,27 @@ export default function MeusDadosPage() {
         .eq('pf_id', user.id)
         .order('created_at', { ascending: false })
       setCompanies(data || [])
-      setShowPJDialog(false)
+
+      if (!editingPJ && savedPJ) {
+        // New company created - switch to edit mode to show document upload
+        setEditingPJ(savedPJ)
+        setPjDocuments([])
+        setLoadingPjDocuments(false)
+        addToast({
+          title: 'Empresa cadastrada com sucesso!',
+          description: 'Agora você pode enviar os documentos da empresa.',
+          variant: 'success',
+        })
+        // Keep dialog open - don't call setShowPJDialog(false)
+      } else {
+        // Existing company updated - close dialog
+        setShowPJDialog(false)
+        addToast({
+          title: 'Dados salvos!',
+          description: 'As informações da empresa foram atualizadas.',
+          variant: 'success',
+        })
+      }
     }
 
     setPjSaving(false)
@@ -780,11 +917,11 @@ export default function MeusDadosPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingPJ ? 'Editar Empresa' : 'Nova Empresa'}
+              {editingPJ ? 'Editar Empresa e Documentos' : 'Nova Empresa'}
             </DialogTitle>
             <DialogDescription>
               {editingPJ
-                ? 'Atualize os dados da empresa'
+                ? 'Atualize os dados da empresa e envie os documentos necessários'
                 : 'Cadastre uma nova empresa para comprar cotas como PJ'}
             </DialogDescription>
           </DialogHeader>
@@ -941,13 +1078,47 @@ export default function MeusDadosPage() {
               />
             </div>
 
+            {editingPJ && (
+              <div className="border-t pt-6 mt-6">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-base font-semibold">Documentos da Empresa</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Envie os documentos necessários para validar a empresa
+                    </p>
+                  </div>
+
+                  {loadingPjDocuments ? (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-muted-foreground">Carregando documentos...</p>
+                    </div>
+                  ) : (
+                    <DocumentList
+                      ownerId={editingPJ.id}
+                      ownerType="PJ"
+                      documentTypes={['PJ_ARTICLES_OF_INCORPORATION', 'PJ_PROOF_OF_ADDRESS', 'PJ_DRE', 'PJ_STATEMENT', 'PJ_EXTRA'] as DocumentType[]}
+                      documents={pjDocuments}
+                      onDocumentChange={setPjDocuments}
+                    />
+                  )}
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>Importante:</strong> Os documentos enviados serão analisados pela nossa equipe.
+                      Você será notificado quando a análise for concluída.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setShowPJDialog(false)}
               >
-                Cancelar
+                {editingPJ ? 'Fechar' : 'Cancelar'}
               </Button>
               <Button type="submit" disabled={pjSaving}>
                 {pjSaving ? 'Salvando...' : editingPJ ? 'Salvar alterações' : 'Cadastrar empresa'}

@@ -6,16 +6,20 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Format currency in Brazilian Real
-export function formatCurrency(value: number): string {
+export function formatCurrency(value: number | string): string {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value
+  if (isNaN(numValue)) return 'R$ 0,00'
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(value)
+  }).format(numValue)
 }
 
 // Format percentage
-export function formatPercentage(value: number, decimals: number = 2): string {
-  return `${value.toFixed(decimals)}%`
+export function formatPercentage(value: number | string, decimals: number = 2): string {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value
+  if (isNaN(numValue)) return '-'
+  return `${numValue.toFixed(decimals)}%`
 }
 
 // Format CPF: 000.000.000-00

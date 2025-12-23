@@ -96,11 +96,11 @@ export default function CotasPage() {
                       )}
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="w-[85vw] max-w-sm">
+                  <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto">
                     <SheetHeader>
                       <SheetTitle>Filtros</SheetTitle>
                     </SheetHeader>
-                    <div className="mt-6">
+                    <div className="mt-6 pb-6">
                       <FiltersPanel
                         filters={filters}
                         onFiltersChange={setFilters}
@@ -206,11 +206,11 @@ export default function CotasPage() {
                       Mais filtros
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="w-80">
+                  <SheetContent side="right" className="w-80 overflow-y-auto">
                     <SheetHeader>
                       <SheetTitle>Filtros Avançados</SheetTitle>
                     </SheetHeader>
-                    <div className="mt-6">
+                    <div className="mt-6 pb-6">
                       <FiltersPanel
                         filters={filters}
                         onFiltersChange={setFilters}

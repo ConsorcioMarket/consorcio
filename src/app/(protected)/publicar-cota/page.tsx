@@ -124,6 +124,19 @@ export default function PublicarCotaPage() {
     setError(null)
     setSaving(true)
 
+    // Check if user profile exists
+    const { data: profileExists } = await supabase
+      .from('profiles_pf')
+      .select('id')
+      .eq('id', user.id)
+      .single()
+
+    if (!profileExists) {
+      setError('Seu perfil não está completo. Por favor, complete seus dados em "Meus Dados" antes de publicar uma cota.')
+      setSaving(false)
+      return
+    }
+
     // Validation
     const creditAmount = parseCurrency(form.creditAmount)
     const outstandingBalance = parseCurrency(form.outstandingBalance)

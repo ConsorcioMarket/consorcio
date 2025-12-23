@@ -203,11 +203,18 @@ export function DocumentUpload({
     fileInputRef.current?.click()
   }
 
+  // Check if this document is required
+  const requiredPJDocs: DocumentType[] = ['PJ_ARTICLES_OF_INCORPORATION', 'PJ_PROOF_OF_ADDRESS']
+  const isRequired = ownerType === 'PJ' && requiredPJDocs.includes(documentType)
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="font-medium text-sm">{getDocumentTypeLabel(documentType)}</p>
+          <p className="font-medium text-sm">
+            {getDocumentTypeLabel(documentType)}
+            {isRequired && <span className="text-red-500 ml-1">*</span>}
+          </p>
           {existingDocument && (
             <Badge variant={getStatusBadgeVariant(existingDocument.status)} className="mt-1">
               {getDocumentStatusLabel(existingDocument.status)}
@@ -219,7 +226,7 @@ export function DocumentUpload({
       {/* Show rejection reason if rejected */}
       {existingDocument?.status === 'REJECTED' && existingDocument.rejection_reason && (
         <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
           <p className="text-sm text-red-700">{existingDocument.rejection_reason}</p>
         </div>
       )}
@@ -335,8 +342,9 @@ export function DocumentList({
   onDocumentChange,
 }: DocumentListProps) {
   const [error, setError] = useState<string | null>(null)
+  const supabase = createClient()
 
-  const handleUploadComplete = (doc: Document) => {
+  const handleUploadComplete = async (doc: Document) => {
     const existingIndex = documents.findIndex((d) => d.document_type === doc.document_type)
     let newDocs: Document[]
 
@@ -349,6 +357,35 @@ export function DocumentList({
 
     onDocumentChange?.(newDocs)
     setError(null)
+
+    // Auto-update PJ status to PENDING_REVIEW when required documents are uploaded
+    if (ownerType === 'PJ') {
+      await updatePJStatusIfReady(newDocs)
+    }
+  }
+
+  const updatePJStatusIfReady = async (docs: Document[]) => {
+    // Required PJ documents
+    const requiredDocs: DocumentType[] = ['PJ_ARTICLES_OF_INCORPORATION', 'PJ_PROOF_OF_ADDRESS']
+
+    // Check if all required documents are uploaded and not rejected
+    const allRequiredDocsUploaded = requiredDocs.every((docType) => {
+      const doc = docs.find((d) => d.document_type === docType)
+      return doc && doc.status !== 'PENDING_UPLOAD' && doc.status !== 'REJECTED'
+    })
+
+    if (allRequiredDocsUploaded) {
+      // Update PJ status to PENDING_REVIEW
+      const { error: updateError } = await supabase
+        .from('profiles_pj')
+        .update({ status: 'PENDING_REVIEW' })
+        .eq('id', ownerId)
+        .eq('status', 'INCOMPLETE') // Only update if still INCOMPLETE
+
+      if (updateError) {
+        console.error('Error updating PJ status:', updateError)
+      }
+    }
   }
 
   const handleError = (errorMessage: string) => {
@@ -359,7 +396,7 @@ export function DocumentList({
     <div className="space-y-6">
       {error && (
         <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
           <p className="text-sm text-red-700">{error}</p>
           <button
             onClick={() => setError(null)}

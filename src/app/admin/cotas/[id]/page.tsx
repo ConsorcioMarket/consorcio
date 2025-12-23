@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { formatCurrency, getCotaStatusLabel, getDocumentStatusLabel } from '@/lib/utils'
+import { formatCurrency, getCotaStatusLabel, getDocumentStatusLabel, calculateMonthlyRate } from '@/lib/utils'
 import type { CotaStatus, Document, DocumentStatus } from '@/types/database'
 
 interface CotaDetail {
@@ -111,6 +111,22 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
 
   const supabase = useMemo(() => createClient(), [])
 
+  // Calculate derived values in real-time
+  const calculatedValues = useMemo(() => {
+    const creditAmount = parseCurrency(editForm.creditAmount)
+    const entryAmount = parseCurrency(editForm.entryAmount)
+    const outstandingBalance = parseCurrency(editForm.outstandingBalance)
+    const nInstallments = parseInt(editForm.nInstallments) || 0
+    const installmentValue = parseCurrency(editForm.installmentValue)
+
+    const entryPercentage = creditAmount > 0 ? (entryAmount / creditAmount) * 100 : 0
+    const monthlyRate = nInstallments > 0 && installmentValue > 0 && outstandingBalance > 0
+      ? calculateMonthlyRate(nInstallments, -installmentValue, outstandingBalance)
+      : 0
+
+    return { entryPercentage, monthlyRate }
+  }, [editForm])
+
   useEffect(() => {
     const fetchCota = async () => {
       setLoading(true)
@@ -194,6 +210,9 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
     // Calculate new entry percentage
     const entryPercentage = creditAmount > 0 ? (entryAmount / creditAmount) * 100 : 0
 
+    // Calculate monthly rate using RATE formula
+    const monthlyRate = calculateMonthlyRate(nInstallments, -installmentValue, outstandingBalance)
+
     // Get current user for history tracking
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -225,6 +244,7 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
         n_installments: nInstallments,
         installment_value: installmentValue,
         entry_percentage: entryPercentage,
+        monthly_rate: monthlyRate,
       })
       .eq('id', cota.id)
 

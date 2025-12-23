@@ -222,7 +222,7 @@ export function ListingTable({
                 <TableCell className="text-center">{formatCurrency(listing.entry_amount)}</TableCell>
                 <TableCell className="text-center">{formatPercentage(listing.entry_percentage)}</TableCell>
                 <TableCell className="text-center">
-                  {listing.monthly_rate
+                  {listing.monthly_rate !== null && listing.monthly_rate !== undefined
                     ? formatPercentage(listing.monthly_rate, 4)
                     : '-'}
                 </TableCell>

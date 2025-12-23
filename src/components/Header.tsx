@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { Menu, X, User, LogOut, FileText, Home, PlusCircle, ShoppingCart, ChevronDown, Clock, CreditCard, Users, LayoutDashboard, Shield, ClipboardList, Settings } from 'lucide-react'
-import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
@@ -43,14 +43,6 @@ export function Header() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [userStats, setUserStats] = useState<UserStats>({ cotasCount: 0, proposalsCount: 0, pendingProposals: 0 })
   const userMenuRef = useRef<HTMLDivElement>(null)
-
-  // Fix hydration mismatch by only rendering auth-dependent content after mount
-  // Using useSyncExternalStore to avoid ESLint warning about setState in effect
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  )
 
   const supabase = createClient()
 
@@ -160,7 +152,7 @@ export function Header() {
 
           {/* Desktop Navigation - Show nav links for logged-in users */}
           <nav className="hidden md:flex items-center space-x-1">
-            {mounted && !authLoading && user && !isAdmin && (
+            {!authLoading && user && !isAdmin && (
               <>
                 {userNavLinks.map((link) => {
                   const Icon = link.icon
@@ -183,7 +175,7 @@ export function Header() {
                 })}
               </>
             )}
-            {mounted && !authLoading && isAdmin && (
+            {!authLoading && isAdmin && (
               <>
                 {adminNavLinks.map((link) => {
                   const Icon = link.icon
@@ -211,8 +203,8 @@ export function Header() {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* Cart Indicator - only render after mount to prevent hydration mismatch */}
-            {mounted && items.length > 0 && (
+            {/* Cart Indicator */}
+            {items.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -228,7 +220,7 @@ export function Header() {
                 </span>
               </Button>
             )}
-            {mounted && !authLoading && user ? (
+            {user ? (
               <div className="flex items-center space-x-4">
                 {/* Admin Badge */}
                 {isAdmin && (
@@ -247,7 +239,7 @@ export function Header() {
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                   >
                     <User className="h-4 w-4" />
-                    <span>{profile?.full_name?.split(' ')[0] || 'Conta'}</span>
+                    <span>{authLoading ? 'Carregando...' : (profile?.full_name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || 'Conta')}</span>
                     {userStats.pendingProposals > 0 && (
                       <span className="bg-yellow-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                         {userStats.pendingProposals}
@@ -349,7 +341,7 @@ export function Header() {
                   )}
                 </div>
               </div>
-            ) : mounted && !authLoading ? (
+            ) : !authLoading ? (
               <>
                 <Link href="/login">
                   <Button variant="ghost" size="sm" className="text-white hover:bg-white hover:text-navy">
@@ -367,7 +359,7 @@ export function Header() {
 
           {/* Mobile Cart + Menu Button */}
           <div className="md:hidden flex items-center gap-2">
-            {mounted && items.length > 0 && (
+            {items.length > 0 && (
               <button
                 onClick={() => setIsOpen(true)}
                 className="relative p-3 text-white rounded-lg hover:bg-white/10 transition-colors"
@@ -396,7 +388,7 @@ export function Header() {
       </div>
 
       {/* Mobile Menu Portal - Rendered outside header for better scroll */}
-      {mounted && mobileMenuOpen && typeof window !== 'undefined' && createPortal(
+      {mobileMenuOpen && typeof window !== 'undefined' && createPortal(
         <div
           className="md:hidden fixed inset-0 z-100"
           style={{ top: '64px' }}

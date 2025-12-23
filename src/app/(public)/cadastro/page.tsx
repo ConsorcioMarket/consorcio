@@ -36,9 +36,53 @@ function formatPhone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
 }
 
+// Helper function to format CPF as 000.000.000-00
+function formatCPF(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+  if (digits.length === 0) return ''
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+}
+
+// Helper function to validate CPF
+function isValidCPF(cpf: string): boolean {
+  const digits = cpf.replace(/\D/g, '')
+
+  if (digits.length !== 11) return false
+
+  // Check for known invalid CPFs (all same digits)
+  if (/^(\d)\1{10}$/.test(digits)) return false
+
+  // Validate check digits
+  let sum = 0
+  let remainder
+
+  for (let i = 1; i <= 9; i++) {
+    sum += parseInt(digits.substring(i - 1, i)) * (11 - i)
+  }
+
+  remainder = (sum * 10) % 11
+  if (remainder === 10 || remainder === 11) remainder = 0
+  if (remainder !== parseInt(digits.substring(9, 10))) return false
+
+  sum = 0
+  for (let i = 1; i <= 10; i++) {
+    sum += parseInt(digits.substring(i - 1, i)) * (12 - i)
+  }
+
+  remainder = (sum * 10) % 11
+  if (remainder === 10 || remainder === 11) remainder = 0
+  if (remainder !== parseInt(digits.substring(10, 11))) return false
+
+  return true
+}
+
 export default function CadastroPage() {
   const [formData, setFormData] = useState({
     fullName: '',
+    cpf: '',
     email: '',
     phone: '',
     password: '',
@@ -58,6 +102,12 @@ export default function CadastroPage() {
   const validateForm = (): string | null => {
     if (!formData.fullName.trim()) {
       return 'Por favor, informe seu nome completo.'
+    }
+    if (!formData.cpf.trim()) {
+      return 'Por favor, informe seu CPF.'
+    }
+    if (!isValidCPF(formData.cpf)) {
+      return 'Por favor, informe um CPF válido.'
     }
     if (!formData.email.includes('@')) {
       return 'Por favor, informe um email válido.'
@@ -89,10 +139,12 @@ export default function CadastroPage() {
     setLoading(true)
 
     try {
-      // Store phone as digits only in the database
+      // Store phone and CPF as digits only in the database
       const phoneDigits = formData.phone.replace(/\D/g, '')
+      const cpfDigits = formData.cpf.replace(/\D/g, '')
       const { error } = await signUp(formData.email, formData.password, {
         full_name: formData.fullName,
+        cpf: cpfDigits,
         phone: phoneDigits,
       })
 
@@ -163,6 +215,22 @@ export default function CadastroPage() {
                 placeholder="Seu nome completo"
                 value={formData.fullName}
                 onChange={(e) => handleChange('fullName', e.target.value)}
+                required
+                disabled={loading}
+                className="h-11"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cpf" className="text-sm font-medium text-gray-700">
+                CPF <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="cpf"
+                type="text"
+                placeholder="000.000.000-00"
+                value={formData.cpf}
+                onChange={(e) => handleChange('cpf', formatCPF(e.target.value))}
                 required
                 disabled={loading}
                 className="h-11"
