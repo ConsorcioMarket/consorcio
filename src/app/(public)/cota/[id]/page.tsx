@@ -149,31 +149,69 @@ export default function CotaDetailPage({ params }: { params: Promise<{ id: strin
       </section>
 
       {/* Content Section */}
-      <section className="section-light py-12">
+      <section className="section-light py-8 md:py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Mobile: Action Button First */}
+            <div className="lg:hidden mb-6">
+              {canPropose && (
+                <Button onClick={handleInterest} size="lg" className="w-full">
+                  Tenho Interesse
+                </Button>
+              )}
+
+              {isMine && (
+                <div className="text-center p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Esta é a sua cota
+                  </p>
+                  <Link href={`/editar-cota/${cota.id}`}>
+                    <Button variant="outline" className="w-full">
+                      Editar Cota
+                    </Button>
+                  </Link>
+                </div>
+              )}
+
+              {isReserved && !isMine && (
+                <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    Esta cota está reservada e não aceita novas propostas.
+                  </p>
+                </div>
+              )}
+
+              {isSold && (
+                <div className="text-center p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Esta cota já foi vendida.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
               {/* Main Info */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-2 space-y-4 md:space-y-6">
                 {/* Key Values */}
                 <Card className="bg-white shadow-lg border-0">
-                  <CardHeader>
-                    <CardTitle>Valores Principais</CardTitle>
+                  <CardHeader className="pb-2 md:pb-6">
+                    <CardTitle className="text-lg md:text-xl">Valores Principais</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="bg-primary/5 p-4 rounded-lg">
-                        <p className="text-sm text-muted-foreground mb-1">Valor do Crédito</p>
-                        <p className="text-2xl font-bold text-primary">
+                    <div className="grid grid-cols-2 gap-3 md:gap-6">
+                      <div className="bg-primary/5 p-3 md:p-4 rounded-lg">
+                        <p className="text-xs md:text-sm text-muted-foreground mb-1">Valor do Crédito</p>
+                        <p className="text-lg md:text-2xl font-bold text-primary">
                           {formatCurrency(cota.credit_amount)}
                         </p>
                       </div>
-                      <div className="bg-primary/5 p-4 rounded-lg">
-                        <p className="text-sm text-muted-foreground mb-1">Entrada</p>
-                        <p className="text-2xl font-bold text-primary">
+                      <div className="bg-primary/5 p-3 md:p-4 rounded-lg">
+                        <p className="text-xs md:text-sm text-muted-foreground mb-1">Entrada</p>
+                        <p className="text-lg md:text-2xl font-bold text-primary">
                           {formatCurrency(cota.entry_amount)}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs md:text-sm text-muted-foreground">
                           {formatPercentage(cota.entry_percentage)} do crédito
                         </p>
                       </div>
@@ -183,33 +221,33 @@ export default function CotaDetailPage({ params }: { params: Promise<{ id: strin
 
                 {/* Financial Details */}
                 <Card className="bg-white shadow-lg border-0">
-                  <CardHeader>
-                    <CardTitle>Detalhes Financeiros</CardTitle>
+                  <CardHeader className="pb-2 md:pb-6">
+                    <CardTitle className="text-lg md:text-xl">Detalhes Financeiros</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-muted-foreground">Saldo Devedor</span>
-                      <span className="font-semibold">{formatCurrency(cota.outstanding_balance)}</span>
+                  <CardContent className="space-y-3 md:space-y-4">
+                    <div className="flex justify-between items-center py-1 md:py-2">
+                      <span className="text-sm md:text-base text-muted-foreground">Saldo Devedor</span>
+                      <span className="font-semibold text-sm md:text-base">{formatCurrency(cota.outstanding_balance)}</span>
                     </div>
                     <Separator />
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-muted-foreground">Número de Parcelas</span>
-                      <span className="font-semibold">{cota.n_installments}x</span>
+                    <div className="flex justify-between items-center py-1 md:py-2">
+                      <span className="text-sm md:text-base text-muted-foreground">Parcelas</span>
+                      <span className="font-semibold text-sm md:text-base">{cota.n_installments}x</span>
                     </div>
                     <Separator />
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-muted-foreground">Valor da Parcela</span>
-                      <span className="font-semibold">{formatCurrency(cota.installment_value)}</span>
+                    <div className="flex justify-between items-center py-1 md:py-2">
+                      <span className="text-sm md:text-base text-muted-foreground">Valor da Parcela</span>
+                      <span className="font-semibold text-sm md:text-base">{formatCurrency(cota.installment_value)}</span>
                     </div>
                     <Separator />
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-muted-foreground">% Entrada</span>
-                      <span className="font-semibold">{formatPercentage(cota.entry_percentage)}</span>
+                    <div className="flex justify-between items-center py-1 md:py-2">
+                      <span className="text-sm md:text-base text-muted-foreground">% Entrada</span>
+                      <span className="font-semibold text-sm md:text-base">{formatPercentage(cota.entry_percentage)}</span>
                     </div>
                     <Separator />
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-muted-foreground">Taxa Mensal</span>
-                      <span className="font-semibold">
+                    <div className="flex justify-between items-center py-1 md:py-2">
+                      <span className="text-sm md:text-base text-muted-foreground">Taxa Mensal</span>
+                      <span className="font-semibold text-sm md:text-base">
                         {cota.monthly_rate ? formatPercentage(cota.monthly_rate, 4) : '-'}
                       </span>
                     </div>
@@ -217,20 +255,34 @@ export default function CotaDetailPage({ params }: { params: Promise<{ id: strin
                 </Card>
 
                 {/* Disclaimer */}
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 md:p-4 flex gap-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-yellow-800 mb-1">Importante</p>
-                    <p className="text-sm text-yellow-700">
+                    <p className="font-medium text-yellow-800 mb-1 text-sm md:text-base">Importante</p>
+                    <p className="text-xs md:text-sm text-yellow-700">
                       Os valores exatos serão confirmados após o vendedor enviar o extrato
                       atualizado do consórcio. Pequenas variações podem ocorrer.
                     </p>
                   </div>
                 </div>
+
+                {/* Mobile: Date info */}
+                <div className="lg:hidden text-sm text-muted-foreground bg-white rounded-lg p-4 shadow">
+                  <p>
+                    <strong>Publicada em:</strong>{' '}
+                    {new Date(cota.created_at).toLocaleDateString('pt-BR')}
+                  </p>
+                  {cota.updated_at !== cota.created_at && (
+                    <p className="mt-1">
+                      <strong>Atualizada em:</strong>{' '}
+                      {new Date(cota.updated_at).toLocaleDateString('pt-BR')}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {/* Sidebar */}
-              <div className="space-y-6">
+              {/* Sidebar - Desktop Only */}
+              <div className="hidden lg:block space-y-6">
                 {/* Action Card */}
                 <Card className="bg-white shadow-lg border-0 sticky top-24">
                   <CardHeader>

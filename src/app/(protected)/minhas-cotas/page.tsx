@@ -381,83 +381,165 @@ export default function MinhasCotasPage() {
                   </Link>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Administradora</TableHead>
-                        <TableHead>Crédito</TableHead>
-                        <TableHead>Entrada</TableHead>
-                        <TableHead>Parcelas</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Propostas</TableHead>
-                        <TableHead>Criada em</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {cotas.map((cota) => (
-                        <TableRow key={cota.id} className={cota.proposals && cota.proposals.underReview > 0 ? 'bg-yellow-50/50' : ''}>
-                          <TableCell className="font-medium">
-                            {cota.administrator}
-                          </TableCell>
-                          <TableCell>{formatCurrency(cota.credit_amount)}</TableCell>
-                          <TableCell>
-                            {formatCurrency(cota.entry_amount)}
-                            <span className="text-muted-foreground text-xs ml-1">
-                              ({formatPercentage(cota.entry_percentage)})
-                            </span>
-                          </TableCell>
-                          <TableCell>{cota.n_installments}x</TableCell>
-                          <TableCell>
-                            <Badge variant={getStatusBadgeVariant(cota.status)}>
-                              {getCotaStatusLabel(cota.status)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
+                <>
+                  {/* Mobile: Card View */}
+                  <div className="md:hidden space-y-4">
+                    {cotas.map((cota) => (
+                      <div
+                        key={cota.id}
+                        className={`border rounded-lg p-4 ${cota.proposals && cota.proposals.underReview > 0 ? 'bg-yellow-50/50 border-yellow-200' : 'bg-white'}`}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-base truncate">{cota.administrator}</h3>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(cota.created_at).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                          <Badge variant={getStatusBadgeVariant(cota.status)} className="shrink-0">
+                            {getCotaStatusLabel(cota.status)}
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                          <div>
+                            <p className="text-muted-foreground text-xs">Crédito</p>
+                            <p className="font-medium">{formatCurrency(cota.credit_amount)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">Entrada</p>
+                            <p className="font-medium">
+                              {formatCurrency(cota.entry_amount)}
+                              <span className="text-muted-foreground text-xs ml-1">
+                                ({formatPercentage(cota.entry_percentage)})
+                              </span>
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">Parcelas</p>
+                            <p className="font-medium">{cota.n_installments}x</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">Propostas</p>
                             <ProposalIndicator proposals={cota.proposals} />
-                          </TableCell>
-                          <TableCell>
-                            {new Date(cota.created_at).toLocaleDateString('pt-BR')}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-3 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/cota/${cota.id}`)}
+                            className="flex-1"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Ver
+                          </Button>
+                          {canEditOrDelete(cota.status) && (
+                            <>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                onClick={() => router.push(`/cota/${cota.id}`)}
-                                title="Ver detalhes"
+                                onClick={() => router.push(`/editar-cota/${cota.id}`)}
+                                className="flex-1"
                               >
-                                <Eye className="h-4 w-4" />
+                                <Pencil className="h-4 w-4 mr-1" />
+                                Editar
                               </Button>
-                              {canEditOrDelete(cota.status) && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => router.push(`/editar-cota/${cota.id}`)}
-                                    title="Editar"
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDeleteClick(cota)}
-                                    className="text-red-600 hover:text-red-700"
-                                    title="Excluir"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteClick(cota)}
+                                className="text-red-600 hover:text-red-700 border-red-200"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop: Table View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Administradora</TableHead>
+                          <TableHead>Crédito</TableHead>
+                          <TableHead>Entrada</TableHead>
+                          <TableHead>Parcelas</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Propostas</TableHead>
+                          <TableHead>Criada em</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {cotas.map((cota) => (
+                          <TableRow key={cota.id} className={cota.proposals && cota.proposals.underReview > 0 ? 'bg-yellow-50/50' : ''}>
+                            <TableCell className="font-medium">
+                              {cota.administrator}
+                            </TableCell>
+                            <TableCell>{formatCurrency(cota.credit_amount)}</TableCell>
+                            <TableCell>
+                              {formatCurrency(cota.entry_amount)}
+                              <span className="text-muted-foreground text-xs ml-1">
+                                ({formatPercentage(cota.entry_percentage)})
+                              </span>
+                            </TableCell>
+                            <TableCell>{cota.n_installments}x</TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusBadgeVariant(cota.status)}>
+                                {getCotaStatusLabel(cota.status)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <ProposalIndicator proposals={cota.proposals} />
+                            </TableCell>
+                            <TableCell>
+                              {new Date(cota.created_at).toLocaleDateString('pt-BR')}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => router.push(`/cota/${cota.id}`)}
+                                  title="Ver detalhes"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {canEditOrDelete(cota.status) && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => router.push(`/editar-cota/${cota.id}`)}
+                                      title="Editar"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteClick(cota)}
+                                      className="text-red-600 hover:text-red-700"
+                                      title="Excluir"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
 
               {/* Legend */}

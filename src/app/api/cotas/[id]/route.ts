@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { CotaStatus } from '@/types/database'
 
 const VALID_STATUSES: CotaStatus[] = ['AVAILABLE', 'RESERVED', 'SOLD', 'REMOVED']
@@ -49,14 +50,34 @@ export async function PATCH(
       )
     }
 
+    // Use admin client to bypass RLS for database operations
+    let adminSupabase
+    try {
+      adminSupabase = createAdminClient()
+    } catch (err) {
+      console.error('Failed to create admin client:', err)
+      return NextResponse.json(
+        { error: 'Erro de configuração do servidor' },
+        { status: 500 }
+      )
+    }
+
     // Get current cota
-    const { data: cota, error: cotaError } = await supabase
+    const { data: cota, error: cotaError } = await adminSupabase
       .from('cotas')
       .select('*')
       .eq('id', id)
       .single()
 
-    if (cotaError || !cota) {
+    if (cotaError) {
+      console.error('Error fetching cota:', cotaError)
+      return NextResponse.json(
+        { error: `Cota não encontrada: ${cotaError.message}` },
+        { status: 404 }
+      )
+    }
+
+    if (!cota) {
       return NextResponse.json(
         { error: 'Cota não encontrada' },
         { status: 404 }
@@ -114,17 +135,26 @@ export async function PATCH(
       )
     }
 
-    // Update cota
-    const { error: updateError } = await supabase
+    // Update cota using admin client
+    const { data: updatedCota, error: updateError } = await adminSupabase
       .from('cotas')
       .update(updateData)
       .eq('id', id)
+      .select()
 
     if (updateError) {
       console.error('Error updating cota:', updateError)
       return NextResponse.json(
-        { error: 'Erro ao atualizar cota' },
+        { error: `Erro ao atualizar cota: ${updateError.message}` },
         { status: 500 }
+      )
+    }
+
+    if (!updatedCota || updatedCota.length === 0) {
+      console.error('Cota update returned no data - RLS may be blocking the update')
+      return NextResponse.json(
+        { error: 'Erro ao atualizar cota: permissão negada pelo RLS' },
+        { status: 403 }
       )
     }
 
@@ -137,7 +167,7 @@ export async function PATCH(
       changed_by: user.id,
     }))
 
-    await supabase.from('cota_history').insert(historyEntries)
+    await adminSupabase.from('cota_history').insert(historyEntries)
 
     return NextResponse.json({
       success: true,

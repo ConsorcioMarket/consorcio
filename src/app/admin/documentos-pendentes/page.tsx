@@ -16,6 +16,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/toast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -101,6 +102,7 @@ function getFilePathFromUrl(fileUrl: string, ownerType: string): string {
 }
 
 export default function DocumentosPendentesPage() {
+  const { addToast } = useToast()
   const [documents, setDocuments] = useState<PendingDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -207,7 +209,11 @@ export default function DocumentosPendentesPage() {
       const newStatus = actionDialog.type === 'approve' ? 'APPROVED' : 'REJECTED'
 
       if (newStatus === 'REJECTED' && !rejectionReason.trim()) {
-        alert('Por favor, informe o motivo da rejeição.')
+        addToast({
+          title: 'Campo obrigatório',
+          description: 'Por favor, informe o motivo da rejeição.',
+          variant: 'warning',
+        })
         setActionLoading(false)
         return
       }
@@ -231,11 +237,21 @@ export default function DocumentosPendentesPage() {
       // Remove from list
       setDocuments((prev) => prev.filter((d) => d.id !== actionDialog.document!.id))
 
+      addToast({
+        title: actionDialog.type === 'approve' ? 'Documento aprovado!' : 'Documento rejeitado',
+        description: `O documento foi ${actionDialog.type === 'approve' ? 'aprovado' : 'rejeitado'} com sucesso.`,
+        variant: 'success',
+      })
+
       setActionDialog({ open: false, type: null, document: null })
       setRejectionReason('')
     } catch (error) {
       console.error('Error updating document:', error)
-      alert('Erro ao atualizar documento. Tente novamente.')
+      addToast({
+        title: 'Erro',
+        description: 'Erro ao atualizar documento. Tente novamente.',
+        variant: 'error',
+      })
     } finally {
       setActionLoading(false)
     }

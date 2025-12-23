@@ -766,13 +766,13 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
         <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
           {success && (
             <div className="flex items-center gap-2 p-4 bg-green-600 text-white rounded-lg shadow-lg min-w-[280px]">
-              <CheckCircle className="h-5 w-5 flex-shrink-0" />
+              <CheckCircle className="h-5 w-5 shrink-0" />
               <p className="text-sm font-medium">{success}</p>
             </div>
           )}
           {error && (
             <div className="flex items-center gap-2 p-4 bg-red-600 text-white rounded-lg shadow-lg min-w-[280px]">
-              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+              <AlertCircle className="h-5 w-5 shrink-0" />
               <p className="text-sm font-medium">{error}</p>
             </div>
           )}

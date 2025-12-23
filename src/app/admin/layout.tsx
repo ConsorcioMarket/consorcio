@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
+import { ToastProvider } from '@/components/ui/toast'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -58,10 +59,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <main className="px-4 py-4 sm:py-6 max-w-7xl mx-auto">
-        {children}
-      </main>
-    </div>
+    <ToastProvider>
+      <div className="min-h-screen bg-gray-100">
+        <main className="px-4 py-4 sm:py-6 max-w-7xl mx-auto">
+          {children}
+        </main>
+      </div>
+    </ToastProvider>
   )
 }

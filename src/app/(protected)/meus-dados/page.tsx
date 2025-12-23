@@ -297,7 +297,7 @@ export default function MeusDadosPage() {
         description: 'Suas informações foram atualizadas com sucesso.',
         variant: 'success',
       })
-      // Don't close dialog - let user upload documents
+      setShowPFDialog(false)
     }
 
     setPfSaving(false)
@@ -553,15 +553,15 @@ export default function MeusDadosPage() {
 
                 {/* Personal Data Tab */}
                 <TabsContent value="pessoal">
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-center">
+                  <div className="space-y-4 md:space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                       <div>
-                        <h3 className="text-lg font-semibold">Seus Dados Pessoais</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <h3 className="text-base md:text-lg font-semibold">Seus Dados Pessoais</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground">
                           Gerencie suas informações pessoais e documentos
                         </p>
                       </div>
-                      <Button onClick={openPFDialog} className="flex items-center gap-2">
+                      <Button onClick={openPFDialog} className="flex items-center gap-2 w-full sm:w-auto">
                         <Pencil className="h-4 w-4" />
                         Editar
                       </Button>
@@ -569,28 +569,28 @@ export default function MeusDadosPage() {
 
                     {/* PF Summary Card */}
                     <Card className="border">
-                      <CardContent className="pt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <CardContent className="pt-4 md:pt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                           <div>
-                            <p className="text-sm text-muted-foreground">Nome completo</p>
-                            <p className="font-medium">{profile?.full_name || '-'}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground">Nome completo</p>
+                            <p className="font-medium text-sm md:text-base truncate">{profile?.full_name || '-'}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">CPF</p>
-                            <p className="font-medium">{profile?.cpf ? formatCPF(profile.cpf) : '-'}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground">CPF</p>
+                            <p className="font-medium text-sm md:text-base">{profile?.cpf ? formatCPF(profile.cpf) : '-'}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">Telefone</p>
-                            <p className="font-medium">{profile?.phone ? formatPhone(profile.phone) : '-'}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground">Telefone</p>
+                            <p className="font-medium text-sm md:text-base">{profile?.phone ? formatPhone(profile.phone) : '-'}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">Email</p>
-                            <p className="font-medium">{profile?.email || '-'}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground">Email</p>
+                            <p className="font-medium text-sm md:text-base truncate">{profile?.email || '-'}</p>
                           </div>
                           {profile?.address_street && (
                             <div className="md:col-span-2">
-                              <p className="text-sm text-muted-foreground">Endereço</p>
-                              <p className="font-medium">
+                              <p className="text-xs md:text-sm text-muted-foreground">Endereço</p>
+                              <p className="font-medium text-sm md:text-base">
                                 {profile.address_street}
                                 {profile.address_number && `, ${profile.address_number}`}
                                 {profile.address_complement && ` - ${profile.address_complement}`}
@@ -643,15 +643,15 @@ export default function MeusDadosPage() {
 
                 {/* Companies Tab */}
                 <TabsContent value="empresas">
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-center">
+                  <div className="space-y-4 md:space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                       <div>
-                        <h3 className="text-lg font-semibold">Suas Empresas</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <h3 className="text-base md:text-lg font-semibold">Suas Empresas</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground">
                           Cadastre empresas para comprar cotas como PJ
                         </p>
                       </div>
-                      <Button onClick={openNewPJDialog} className="flex items-center gap-2">
+                      <Button onClick={openNewPJDialog} className="flex items-center gap-2 w-full sm:w-auto">
                         <Plus className="h-4 w-4" />
                         Nova Empresa
                       </Button>
@@ -672,29 +672,29 @@ export default function MeusDadosPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-3 md:space-y-4">
                         {companies.map((company) => (
                           <Card key={company.id} className="border">
-                            <CardHeader className="pb-2">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <CardTitle className="text-lg">{company.legal_name}</CardTitle>
-                                  <CardDescription>
+                            <CardHeader className="pb-2 px-4 md:px-6">
+                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <CardTitle className="text-base md:text-lg truncate">{company.legal_name}</CardTitle>
+                                  <CardDescription className="text-xs md:text-sm">
                                     CNPJ: {formatCNPJ(company.cnpj)}
                                   </CardDescription>
                                 </div>
-                                <Badge variant={getPJStatusVariant(company.status)}>
+                                <Badge variant={getPJStatusVariant(company.status)} className="shrink-0 w-fit">
                                   {getPJStatusLabel(company.status)}
                                 </Badge>
                               </div>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="px-4 md:px-6">
                               <div className="flex gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => openEditPJDialog(company)}
-                                  className="flex items-center gap-1"
+                                  className="flex items-center gap-1 flex-1 sm:flex-none"
                                 >
                                   <Pencil className="h-3 w-3" />
                                   Editar
@@ -703,7 +703,7 @@ export default function MeusDadosPage() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleDeletePJ(company.id)}
-                                  className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                                  className="flex items-center gap-1 text-red-600 hover:text-red-700 flex-1 sm:flex-none"
                                 >
                                   <Trash2 className="h-3 w-3" />
                                   Excluir

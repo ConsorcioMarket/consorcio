@@ -336,23 +336,23 @@ function ComposicaoCreditoContent() {
                 : 'Confirme os dados e envie sua proposta'}
             </p>
 
-            {/* Step Indicators */}
-            <div className="flex items-center justify-center gap-3 pt-4 text-sm">
-              <div className="flex items-center gap-1.5">
+            {/* Step Indicators - Hide labels on mobile */}
+            <div className="flex items-center justify-center gap-2 md:gap-3 pt-4 text-sm">
+              <div className="flex items-center gap-1 md:gap-1.5">
                 <CheckCircle2 className="h-5 w-5 text-green-300" />
-                <span className="text-white/80">1. Cotas</span>
+                <span className="hidden sm:inline text-white/80">1. Cotas</span>
               </div>
-              <div className="w-8 h-px bg-white/40" />
-              <div className="flex items-center gap-1.5">
+              <div className="w-4 md:w-8 h-px bg-white/40" />
+              <div className="flex items-center gap-1 md:gap-1.5">
                 <div className="h-5 w-5 rounded-full border-2 border-white flex items-center justify-center">
                   <span className="text-xs font-bold">2</span>
                 </div>
-                <span className="text-white font-medium">2. Comprador</span>
+                <span className="hidden sm:inline text-white font-medium">2. Comprador</span>
               </div>
-              <div className="w-8 h-px bg-white/40" />
-              <div className="flex items-center gap-1.5">
+              <div className="w-4 md:w-8 h-px bg-white/40" />
+              <div className="flex items-center gap-1 md:gap-1.5">
                 <Circle className="h-5 w-5 text-white/50" />
-                <span className="text-white/50">3. Enviar</span>
+                <span className="hidden sm:inline text-white/50">3. Enviar</span>
               </div>
             </div>
           </div>
@@ -411,18 +411,18 @@ function ComposicaoCreditoContent() {
                       {cotas.map((cota, index) => (
                         <div
                           key={cota.id}
-                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                          className="flex items-start justify-between p-3 md:p-4 bg-gray-50 rounded-lg gap-2"
                         >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               {isMultiCota && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs shrink-0">
                                   #{index + 1}
                                 </Badge>
                               )}
-                              <span className="font-medium">{cota.administrator}</span>
+                              <span className="font-medium text-sm md:text-base truncate">{cota.administrator}</span>
                             </div>
-                            <div className="flex gap-4 text-sm text-muted-foreground">
+                            <div className="flex flex-col sm:flex-row sm:gap-4 gap-1 text-xs md:text-sm text-muted-foreground">
                               <span>Crédito: {formatCurrency(cota.credit_amount)}</span>
                               <span>Entrada: {formatCurrency(cota.entry_amount)}</span>
                             </div>
@@ -432,7 +432,7 @@ function ComposicaoCreditoContent() {
                               variant="ghost"
                               size="sm"
                               onClick={() => removeItem(cota.id)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -444,36 +444,36 @@ function ComposicaoCreditoContent() {
                     <Separator className="my-4" />
 
                     {/* Totals */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="bg-primary/5 p-4 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Crédito Total</p>
-                        <p className="text-lg font-bold text-primary">
+                    <div className="grid grid-cols-2 gap-3 md:gap-4">
+                      <div className="bg-primary/5 p-3 md:p-4 rounded-lg">
+                        <p className="text-xs md:text-sm text-muted-foreground">Crédito Total</p>
+                        <p className="text-base md:text-lg font-bold text-primary">
                           {formatCurrency(totals.totalCredit)}
                         </p>
                       </div>
-                      <div className="bg-primary/5 p-4 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Entrada Total</p>
-                        <p className="text-lg font-bold text-primary">
+                      <div className="bg-primary/5 p-3 md:p-4 rounded-lg">
+                        <p className="text-xs md:text-sm text-muted-foreground">Entrada Total</p>
+                        <p className="text-base md:text-lg font-bold text-primary">
                           {formatCurrency(totals.totalEntry)}
                         </p>
                       </div>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="text-sm text-muted-foreground">% Entrada</p>
-                        <p className="text-lg font-bold">
+                      <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
+                        <p className="text-xs md:text-sm text-muted-foreground">% Entrada</p>
+                        <p className="text-base md:text-lg font-bold">
                           {formatPercentage(totals.combinedEntryPercentage)}
                         </p>
                       </div>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Saldo Devedor</p>
-                        <p className="text-lg font-bold">
+                      <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
+                        <p className="text-xs md:text-sm text-muted-foreground">Saldo Devedor</p>
+                        <p className="text-base md:text-lg font-bold">
                           {formatCurrency(totals.totalBalance)}
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex gap-3">
-                      <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-yellow-800">
+                    <div className="mt-4 p-3 md:p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex gap-2 md:gap-3">
+                      <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-yellow-600 shrink-0 mt-0.5" />
+                      <p className="text-xs md:text-sm text-yellow-800">
                         Valores exatos serão confirmados após análise e envio do extrato atualizado pelo vendedor.
                         {isMultiCota && ' As propostas serão agrupadas e só poderão ser pagas quando todas forem aprovadas.'}
                       </p>
@@ -598,7 +598,7 @@ function ComposicaoCreditoContent() {
                       {/* Warning when PJ is selected but no company chosen */}
                       {buyerType === 'PJ' && !selectedPJId && companies.length > 0 && (
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
                           <p className="text-sm text-amber-800">
                             Selecione uma empresa acima para continuar com a proposta.
                           </p>

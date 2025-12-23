@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { CreditCard, Eye, FileText, Search, Filter, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -47,7 +46,6 @@ const STATUS_OPTIONS: { value: CotaStatus; label: string }[] = [
 ]
 
 export default function AdminCotasPage() {
-  const pathname = usePathname()
   const [cotas, setCotas] = useState<CotaWithSeller[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -63,83 +61,102 @@ export default function AdminCotasPage() {
   }>({ open: false, cota: null, newStatus: null })
   const [updatingStatus, setUpdatingStatus] = useState(false)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
-  useEffect(() => {
-    const fetchCotas = async () => {
-      setLoading(true)
+  const fetchCotas = useCallback(async () => {
+    setLoading(true)
 
-      // Build query
-      let query = supabase
-        .from('cotas')
-        .select(`
-          id,
-          administrator,
-          credit_amount,
-          entry_amount,
-          n_installments,
-          status,
-          created_at,
-          seller:profiles_pf!cotas_seller_id_fkey(id, full_name, email)
-        `, { count: 'exact' })
-        .order('created_at', { ascending: false })
+    // Build query
+    let query = supabase
+      .from('cotas')
+      .select(`
+        id,
+        administrator,
+        credit_amount,
+        entry_amount,
+        n_installments,
+        status,
+        created_at,
+        seller:profiles_pf!cotas_seller_id_fkey(id, full_name, email)
+      `, { count: 'exact' })
+      .order('created_at', { ascending: false })
 
-      // Apply status filter
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter as CotaStatus)
-      }
-
-      // Apply search filter
-      if (searchTerm) {
-        query = query.ilike('administrator', `%${searchTerm}%`)
-      }
-
-      // Apply pagination
-      const from = (page - 1) * PAGE_SIZE
-      const to = from + PAGE_SIZE - 1
-      query = query.range(from, to)
-
-      const { data, error, count } = await query
-
-      if (error) {
-        console.error('Error fetching cotas:', error)
-        setLoading(false)
-        return
-      }
-
-      // Fetch document status for each cota
-      const cotaIds = (data || []).map((c) => c.id)
-      const { data: documents } = await supabase
-        .from('documents')
-        .select('owner_id')
-        .eq('owner_type', 'COTA')
-        .eq('document_type', 'COTA_STATEMENT')
-        .in('owner_id', cotaIds)
-
-      const cotasWithDocuments = cotaIds.filter((id) =>
-        documents?.some((d) => d.owner_id === id)
-      )
-
-      const transformedCotas: CotaWithSeller[] = (data || []).map((cota) => ({
-        id: cota.id,
-        administrator: cota.administrator,
-        credit_amount: Number(cota.credit_amount),
-        entry_amount: Number(cota.entry_amount),
-        n_installments: cota.n_installments,
-        status: cota.status,
-        created_at: cota.created_at,
-        seller: Array.isArray(cota.seller) ? cota.seller[0] : cota.seller,
-        hasStatement: cotasWithDocuments.includes(cota.id),
-      }))
-
-      setCotas(transformedCotas)
-      setTotalCount(count || 0)
-      setLoading(false)
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter as CotaStatus)
     }
 
+    // Apply search filter
+    if (searchTerm) {
+      query = query.ilike('administrator', `%${searchTerm}%`)
+    }
+
+    // Apply pagination
+    const from = (page - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+    query = query.range(from, to)
+
+    const { data, error, count } = await query
+
+    if (error) {
+      console.error('Error fetching cotas:', error)
+      setLoading(false)
+      return
+    }
+
+    // Fetch document status for each cota
+    const cotaIds = (data || []).map((c) => c.id)
+    const { data: documents } = await supabase
+      .from('documents')
+      .select('owner_id')
+      .eq('owner_type', 'COTA')
+      .eq('document_type', 'COTA_STATEMENT')
+      .in('owner_id', cotaIds)
+
+    const cotasWithDocuments = cotaIds.filter((id) =>
+      documents?.some((d) => d.owner_id === id)
+    )
+
+    const transformedCotas: CotaWithSeller[] = (data || []).map((cota) => ({
+      id: cota.id,
+      administrator: cota.administrator,
+      credit_amount: Number(cota.credit_amount),
+      entry_amount: Number(cota.entry_amount),
+      n_installments: cota.n_installments,
+      status: cota.status,
+      created_at: cota.created_at,
+      seller: Array.isArray(cota.seller) ? cota.seller[0] : cota.seller,
+      hasStatement: cotasWithDocuments.includes(cota.id),
+    }))
+
+    setCotas(transformedCotas)
+    setTotalCount(count || 0)
+    setLoading(false)
+  }, [supabase, page, statusFilter, searchTerm])
+
+  // Fetch cotas on mount and when filters change
+  useEffect(() => {
     fetchCotas()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
-  }, [pathname, page, statusFilter, searchTerm])
+  }, [fetchCotas])
+
+  // Refetch when page becomes visible (returning from detail page)
+  useEffect(() => {
+    let lastFetch = Date.now()
+    const MIN_REFETCH_INTERVAL = 2000 // 2 seconds minimum between refetches
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastFetch > MIN_REFETCH_INTERVAL) {
+        lastFetch = Date.now()
+        fetchCotas()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [fetchCotas])
 
   const handleStatusChange = (cota: CotaWithSeller, newStatus: CotaStatus) => {
     if (newStatus === cota.status) return
@@ -157,20 +174,23 @@ export default function AdminCotasPage() {
         body: JSON.stringify({ status: statusDialog.newStatus }),
       })
 
+      const result = await response.json()
+
       if (!response.ok) {
-        const error = await response.json()
-        alert(error.error || 'Erro ao atualizar status')
+        alert(result.error || 'Erro ao atualizar status')
         return
       }
 
-      // Update local state
-      setCotas((prev) =>
-        prev.map((c) =>
-          c.id === statusDialog.cota!.id
-            ? { ...c, status: statusDialog.newStatus! }
-            : c
+      // Only update local state if API succeeded
+      if (result.success) {
+        setCotas((prev) =>
+          prev.map((c) =>
+            c.id === statusDialog.cota!.id
+              ? { ...c, status: statusDialog.newStatus! }
+              : c
+          )
         )
-      )
+      }
 
       setStatusDialog({ open: false, cota: null, newStatus: null })
     } catch (error) {

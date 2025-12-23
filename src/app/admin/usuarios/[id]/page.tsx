@@ -21,6 +21,7 @@ import {
   Eye,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/toast'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -136,6 +137,7 @@ function getStatusLabel(status: string): string {
 
 export default function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const { addToast } = useToast()
   const [userPF, setUserPF] = useState<UserPFDetail | null>(null)
   const [userPJ, setUserPJ] = useState<UserPJDetail | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
@@ -152,7 +154,6 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   }>({ open: false, type: null, target: 'pf', targetId: '', targetName: '' })
   const [rejectionReason, setRejectionReason] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   // Document preview modal
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null)
@@ -494,7 +495,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                     {pfDocuments.map((doc) => (
                       <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                          <FileText className="h-5 w-5 text-gray-500 shrink-0" />
                           <div className="min-w-0">
                             <p className="font-medium text-sm truncate">{doc.file_name}</p>
                             <p className="text-xs text-muted-foreground">
@@ -658,7 +659,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                       {pjDocuments.map((doc) => (
                         <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                            <FileText className="h-5 w-5 text-gray-500 hrink-0" />
                             <div className="min-w-0">
                               <p className="font-medium text-sm truncate">{doc.file_name}</p>
                               <p className="text-xs text-muted-foreground">
@@ -750,7 +751,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                     <div key={cota.id} className="p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <p className="font-medium text-sm truncate">{cota.administrator}</p>
-                        <Badge variant={getStatusBadgeVariant(cota.status)} className="flex-shrink-0 ml-2">
+                        <Badge variant={getStatusBadgeVariant(cota.status)} className="shrink-0 ml-2">
                           {getCotaStatusLabel(cota.status)}
                         </Badge>
                       </div>

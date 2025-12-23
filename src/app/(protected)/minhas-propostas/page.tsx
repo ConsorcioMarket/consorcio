@@ -174,87 +174,173 @@ function ProposalCard({
   return (
     <Card className={`border card-hover ${isRejected ? 'border-red-200 bg-red-50/30' : proposal.status === 'COMPLETED' ? 'border-green-200 bg-green-50/30' : ''}`}>
       <CardContent className="p-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Cota Info */}
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <h3 className="font-semibold text-lg">{proposal.cota?.administrator || 'Administradora'}</h3>
-              <Badge variant={getStatusBadgeVariant(proposal.status)}>
-                {getProposalStatusLabel(proposal.status)}
-              </Badge>
-              {isGrouped && (
-                <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
-                  <Layers className="h-3 w-3 mr-1" />
-                  Composição ({groupInfo.index}/{groupInfo.count})
-                </Badge>
-              )}
+        {/* Mobile Layout */}
+        <div className="md:hidden">
+          {/* Header with title and status */}
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-base truncate">{proposal.cota?.administrator || 'Administradora'}</h3>
+              <p className="text-xs text-muted-foreground">
+                {new Date(proposal.created_at).toLocaleDateString('pt-BR')}
+              </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Crédito:</span>
-                <p className="font-medium">{proposal.cota ? formatCurrency(proposal.cota.credit_amount) : '-'}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Entrada:</span>
-                <p className="font-medium">{proposal.cota ? formatCurrency(proposal.cota.entry_amount) : '-'}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Parcelas:</span>
-                <p className="font-medium">{proposal.cota?.n_installments}x</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Data:</span>
-                <p className="font-medium">{new Date(proposal.created_at).toLocaleDateString('pt-BR')}</p>
-              </div>
+            <Badge variant={getStatusBadgeVariant(proposal.status)} className="shrink-0">
+              {getProposalStatusLabel(proposal.status)}
+            </Badge>
+          </div>
+
+          {isGrouped && (
+            <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200 mb-3">
+              <Layers className="h-3 w-3 mr-1" />
+              Composição ({groupInfo.index}/{groupInfo.count})
+            </Badge>
+          )}
+
+          {/* Values Grid */}
+          <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+            <div>
+              <p className="text-muted-foreground text-xs">Crédito</p>
+              <p className="font-medium">{proposal.cota ? formatCurrency(proposal.cota.credit_amount) : '-'}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Entrada</p>
+              <p className="font-medium">{proposal.cota ? formatCurrency(proposal.cota.entry_amount) : '-'}</p>
             </div>
           </div>
 
-          {/* Timeline and Actions */}
-          <div className="flex flex-col items-end gap-3">
+          {/* Timeline - Compact for mobile */}
+          <div className="mb-3">
             <StatusTimeline status={proposal.status} />
-            <div className="flex gap-2">
-              {isGrouped && (
-                <Link href={`/composicao/${proposal.group_id}`}>
-                  <Button variant="outline" size="sm" className="transition-all duration-200 hover:scale-105 press-effect bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100">
-                    <Layers className="h-4 w-4 mr-1" />
-                    Ver Grupo
-                  </Button>
-                </Link>
-              )}
-              <Button variant="outline" size="sm" className="transition-all duration-200 hover:scale-105 press-effect" onClick={onViewDetails}>
-                <Eye className="h-4 w-4 mr-1" />
-                Detalhes
-              </Button>
-            </div>
           </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-3 border-t">
+            {isGrouped && (
+              <Link href={`/composicao/${proposal.group_id}`} className="flex-1">
+                <Button variant="outline" size="sm" className="w-full bg-purple-50 border-purple-200 text-purple-700">
+                  <Layers className="h-4 w-4 mr-1" />
+                  Grupo
+                </Button>
+              </Link>
+            )}
+            <Button variant="outline" size="sm" className={isGrouped ? "flex-1" : "w-full"} onClick={onViewDetails}>
+              <Eye className="h-4 w-4 mr-1" />
+              Detalhes
+            </Button>
+          </div>
+
+          {/* Rejection reason */}
+          {isRejected && proposal.rejection_reason && (
+            <div className="mt-3 p-3 bg-red-100 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-red-800">Motivo da rejeição:</p>
+                  <p className="text-sm text-red-700">{proposal.rejection_reason}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Current step info */}
+          {!isRejected && currentIndex >= 0 && currentIndex < TIMELINE_STEPS.length && (
+            <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <p className="text-sm">
+                <span className="font-medium text-primary">Próximo passo: </span>
+                {proposal.status === 'UNDER_REVIEW' && 'Aguardando análise da proposta.'}
+                {proposal.status === 'PRE_APPROVED' && 'Envie os documentos necessários.'}
+                {proposal.status === 'APPROVED' && 'Realize o pagamento da entrada.'}
+                {proposal.status === 'TRANSFER_STARTED' && 'Transferência em andamento.'}
+                {proposal.status === 'COMPLETED' && 'Cota transferida com sucesso!'}
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Rejection reason */}
-        {isRejected && proposal.rejection_reason && (
-          <div className="mt-4 p-3 bg-red-100 border border-red-200 rounded-lg">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-red-800">Motivo da rejeição:</p>
-                <p className="text-sm text-red-700">{proposal.rejection_reason}</p>
+        {/* Desktop Layout */}
+        <div className="hidden md:block">
+          <div className="flex flex-row items-center justify-between gap-4">
+            {/* Cota Info */}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <h3 className="font-semibold text-lg">{proposal.cota?.administrator || 'Administradora'}</h3>
+                <Badge variant={getStatusBadgeVariant(proposal.status)}>
+                  {getProposalStatusLabel(proposal.status)}
+                </Badge>
+                {isGrouped && (
+                  <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
+                    <Layers className="h-3 w-3 mr-1" />
+                    Composição ({groupInfo.index}/{groupInfo.count})
+                  </Badge>
+                )}
+              </div>
+              <div className="grid grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Crédito:</span>
+                  <p className="font-medium">{proposal.cota ? formatCurrency(proposal.cota.credit_amount) : '-'}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Entrada:</span>
+                  <p className="font-medium">{proposal.cota ? formatCurrency(proposal.cota.entry_amount) : '-'}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Parcelas:</span>
+                  <p className="font-medium">{proposal.cota?.n_installments}x</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Data:</span>
+                  <p className="font-medium">{new Date(proposal.created_at).toLocaleDateString('pt-BR')}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Timeline and Actions */}
+            <div className="flex flex-col items-end gap-3">
+              <StatusTimeline status={proposal.status} />
+              <div className="flex gap-2">
+                {isGrouped && (
+                  <Link href={`/composicao/${proposal.group_id}`}>
+                    <Button variant="outline" size="sm" className="transition-all duration-200 hover:scale-105 press-effect bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100">
+                      <Layers className="h-4 w-4 mr-1" />
+                      Ver Grupo
+                    </Button>
+                  </Link>
+                )}
+                <Button variant="outline" size="sm" className="transition-all duration-200 hover:scale-105 press-effect" onClick={onViewDetails}>
+                  <Eye className="h-4 w-4 mr-1" />
+                  Detalhes
+                </Button>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Current step info */}
-        {!isRejected && currentIndex >= 0 && currentIndex < TIMELINE_STEPS.length && (
-          <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-            <p className="text-sm">
-              <span className="font-medium text-primary">Próximo passo: </span>
-              {proposal.status === 'UNDER_REVIEW' && 'Aguardando análise da proposta pelo vendedor.'}
-              {proposal.status === 'PRE_APPROVED' && 'Envie os documentos necessários para aprovação final.'}
-              {proposal.status === 'APPROVED' && 'Realize o pagamento da entrada para iniciar a transferência.'}
-              {proposal.status === 'TRANSFER_STARTED' && 'Transferência em andamento junto à administradora.'}
-              {proposal.status === 'COMPLETED' && 'Parabéns! Sua cota foi transferida com sucesso.'}
-            </p>
-          </div>
-        )}
+          {/* Rejection reason */}
+          {isRejected && proposal.rejection_reason && (
+            <div className="mt-4 p-3 bg-red-100 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-red-800">Motivo da rejeição:</p>
+                  <p className="text-sm text-red-700">{proposal.rejection_reason}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Current step info */}
+          {!isRejected && currentIndex >= 0 && currentIndex < TIMELINE_STEPS.length && (
+            <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <p className="text-sm">
+                <span className="font-medium text-primary">Próximo passo: </span>
+                {proposal.status === 'UNDER_REVIEW' && 'Aguardando análise da proposta pelo vendedor.'}
+                {proposal.status === 'PRE_APPROVED' && 'Envie os documentos necessários para aprovação final.'}
+                {proposal.status === 'APPROVED' && 'Realize o pagamento da entrada para iniciar a transferência.'}
+                {proposal.status === 'TRANSFER_STARTED' && 'Transferência em andamento junto à administradora.'}
+                {proposal.status === 'COMPLETED' && 'Parabéns! Sua cota foi transferida com sucesso.'}
+              </p>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
