@@ -249,7 +249,11 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
       const newStatus = actionDialog.type === 'approve' ? 'APPROVED' : 'REJECTED'
 
       if (newStatus === 'REJECTED' && !rejectionReason.trim()) {
-        alert('Por favor, informe o motivo da rejeição.')
+        addToast({
+          title: 'Campo obrigatório',
+          description: 'Por favor, informe o motivo da rejeição.',
+          variant: 'warning',
+        })
         setActionLoading(false)
         return
       }
@@ -302,18 +306,23 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         )
       }
 
-      setSuccessMessage(
-        actionDialog.type === 'approve'
+      addToast({
+        title: actionDialog.type === 'approve' ? 'Aprovado!' : 'Rejeitado',
+        description: actionDialog.type === 'approve'
           ? `${actionDialog.targetName} aprovado com sucesso!`
-          : `${actionDialog.targetName} rejeitado.`
-      )
-      setTimeout(() => setSuccessMessage(null), 3000)
+          : `${actionDialog.targetName} rejeitado.`,
+        variant: 'success',
+      })
 
       setActionDialog({ open: false, type: null, target: 'pf', targetId: '', targetName: '' })
       setRejectionReason('')
     } catch (error) {
       console.error('Error updating:', error)
-      alert('Erro ao atualizar. Tente novamente.')
+      addToast({
+        title: 'Erro',
+        description: 'Erro ao atualizar. Tente novamente.',
+        variant: 'error',
+      })
     } finally {
       setActionLoading(false)
     }
@@ -394,14 +403,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      {/* Success Message */}
-      {successMessage && (
-        <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <Check className="h-5 w-5 text-green-600" />
-          <p className="text-green-800">{successMessage}</p>
-        </div>
-      )}
-
+      
       <div className="space-y-6">
         {/* Personal Info (PF) */}
         <Card>

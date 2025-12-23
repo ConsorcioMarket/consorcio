@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { FileText, Eye, Search, Filter, Check, X, AlertCircle, ArrowUpDown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/toast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -62,6 +63,7 @@ const PAGE_SIZE = 10
 
 export default function AdminPropostasPage() {
   const pathname = usePathname()
+  const { addToast } = useToast()
   const [proposals, setProposals] = useState<ProposalWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -166,7 +168,11 @@ export default function AdminPropostasPage() {
       } else {
         newStatus = 'REJECTED'
         if (!rejectionReason.trim()) {
-          alert('Por favor, informe o motivo da rejeição.')
+          addToast({
+            title: 'Campo obrigatório',
+            description: 'Por favor, informe o motivo da rejeição.',
+            variant: 'warning',
+          })
           setActionLoading(false)
           return
         }
@@ -216,11 +222,22 @@ export default function AdminPropostasPage() {
 
       // Refresh list
       await fetchProposals()
+
+      addToast({
+        title: 'Proposta atualizada!',
+        description: `Status alterado para ${getProposalStatusLabel(newStatus)}.`,
+        variant: 'success',
+      })
+
       setActionDialog({ open: false, type: null, proposal: null })
       setRejectionReason('')
     } catch (error) {
       console.error('Error updating proposal:', error)
-      alert('Erro ao atualizar proposta. Tente novamente.')
+      addToast({
+        title: 'Erro',
+        description: 'Erro ao atualizar proposta. Tente novamente.',
+        variant: 'error',
+      })
     } finally {
       setActionLoading(false)
     }

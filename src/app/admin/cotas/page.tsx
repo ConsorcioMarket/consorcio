@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { CreditCard, Eye, FileText, Search, Filter, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/toast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,6 +47,7 @@ const STATUS_OPTIONS: { value: CotaStatus; label: string }[] = [
 ]
 
 export default function AdminCotasPage() {
+  const { addToast } = useToast()
   const [cotas, setCotas] = useState<CotaWithSeller[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -177,7 +179,11 @@ export default function AdminCotasPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        alert(result.error || 'Erro ao atualizar status')
+        addToast({
+          title: 'Erro',
+          description: result.error || 'Erro ao atualizar status',
+          variant: 'error',
+        })
         return
       }
 
@@ -190,12 +196,21 @@ export default function AdminCotasPage() {
               : c
           )
         )
+        addToast({
+          title: 'Status atualizado!',
+          description: `Cota alterada para ${getCotaStatusLabel(statusDialog.newStatus!)}.`,
+          variant: 'success',
+        })
       }
 
       setStatusDialog({ open: false, cota: null, newStatus: null })
     } catch (error) {
       console.error('Error updating status:', error)
-      alert('Erro ao atualizar status. Tente novamente.')
+      addToast({
+        title: 'Erro',
+        description: 'Erro ao atualizar status. Tente novamente.',
+        variant: 'error',
+      })
     } finally {
       setUpdatingStatus(false)
     }

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { Users, Search, Filter, Check, X, AlertCircle, Building2, User, Eye } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/toast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -84,6 +85,7 @@ function getStatusLabel(status: string): string {
 const PAGE_SIZE = 10
 
 export default function AdminUsuariosPage() {
+  const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState<'pf' | 'pj'>('pf')
 
   // PF state
@@ -304,7 +306,11 @@ export default function AdminUsuariosPage() {
       const newStatus = actionDialog.type === 'approve' ? 'APPROVED' : 'REJECTED'
 
       if (newStatus === 'REJECTED' && !rejectionReason.trim()) {
-        alert('Por favor, informe o motivo da rejeição.')
+        addToast({
+          title: 'Campo obrigatório',
+          description: 'Por favor, informe o motivo da rejeição.',
+          variant: 'warning',
+        })
         setActionLoading(false)
         return
       }
@@ -328,11 +334,21 @@ export default function AdminUsuariosPage() {
         await fetchUsersPJ()
       }
 
+      addToast({
+        title: actionDialog.type === 'approve' ? 'Aprovado!' : 'Rejeitado',
+        description: `${actionDialog.entityType === 'pf' ? 'Usuário' : 'Empresa'} ${actionDialog.type === 'approve' ? 'aprovado' : 'rejeitado'} com sucesso.`,
+        variant: 'success',
+      })
+
       setActionDialog({ open: false, type: null, entityType: 'pf', entity: null })
       setRejectionReason('')
     } catch (error) {
       console.error('Error updating user:', error)
-      alert('Erro ao atualizar usuário. Tente novamente.')
+      addToast({
+        title: 'Erro',
+        description: 'Erro ao atualizar usuário. Tente novamente.',
+        variant: 'error',
+      })
     } finally {
       setActionLoading(false)
     }
