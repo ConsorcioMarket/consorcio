@@ -76,6 +76,8 @@ async function main() {
       administrator: true,
       nInstallments: true,
       installmentValue: true,
+      creditAmount: true,
+      entryAmount: true,
       outstandingBalance: true,
       monthlyRate: true,
     },
@@ -86,39 +88,21 @@ async function main() {
   let updated = 0
   let skipped = 0
   let failed = 0
-  let installmentFixed = 0
 
   for (const cota of cotas) {
     const nInstallments = cota.nInstallments
-    let installmentValue = Number(cota.installmentValue)
-    const outstandingBalance = Number(cota.outstandingBalance)
-
-    // Check if installment value is unrealistic (total payments <= outstanding balance * 1.001)
-    // This means 0% or near-zero rate, which is impossible for a real consórcio
-    // Also check if current rate is 0 or very low (< 0.1%)
-    const totalPayments = installmentValue * nInstallments
+    const installmentValue = Number(cota.installmentValue)
+    const creditAmount = Number(cota.creditAmount)
+    const entryAmount = Number(cota.entryAmount)
+    // Present value is (credit - entry) per PRD formula: RATE(n_installments, -installment_value, credit - entry)
+    const presentValue = creditAmount - entryAmount
     const currentRate = cota.monthlyRate ? Number(cota.monthlyRate) : null
-    const needsInstallmentFix = totalPayments <= outstandingBalance * 1.001 || (currentRate !== null && currentRate < 0.1)
 
-    if (needsInstallmentFix) {
-      // Fix: Set installment so that total payments include realistic interest
-      // For consórcios, typical monthly rates are 0.5%-1.0%
-      // Using factor that gives ~0.7% monthly rate on average
-      // totalPayments = balance * (1 + rate)^n, with rate ~0.007 and typical n ~120
-      // Simplified: installment = balance * 1.12 / n (gives ~0.6-0.8% monthly rate)
-      const fixedInstallment = Math.round((outstandingBalance * 1.12) / nInstallments * 100) / 100
-      console.log(
-        `🔧 ${cota.administrator}: Fixing installment R$${installmentValue.toFixed(2)} → R$${fixedInstallment.toFixed(2)} (was unrealistic)`
-      )
-      installmentValue = fixedInstallment
-      installmentFixed++
-    }
-
-    // Calculate new rate
+    // Calculate new rate using correct formula
     const newRate = calculateMonthlyRate(
       nInstallments,
       -installmentValue, // Negative because it's a payment (outflow)
-      outstandingBalance
+      presentValue
     )
 
     // Check if we need to update
@@ -126,24 +110,17 @@ async function main() {
       (currentRate === null && newRate !== null) ||
       (currentRate !== null && newRate !== null && Math.abs(currentRate - newRate) > 0.0001)
 
-    if (newRate !== null && (currentRate === null || hasChanged || needsInstallmentFix)) {
+    if (newRate !== null && (currentRate === null || hasChanged)) {
       try {
-        const updateData: { monthlyRate: number; updatedAt: Date; installmentValue?: number } = {
-          monthlyRate: newRate,
-          updatedAt: new Date(),
-        }
-
-        // Also update installment value if it was fixed
-        if (needsInstallmentFix) {
-          updateData.installmentValue = installmentValue
-        }
-
         await prisma.cota.update({
           where: { id: cota.id },
-          data: updateData,
+          data: {
+            monthlyRate: newRate,
+            updatedAt: new Date(),
+          },
         })
         console.log(
-          `✅ ${cota.administrator}: ${nInstallments}x R$${installmentValue.toFixed(2)} / R$${outstandingBalance.toFixed(2)} → ${newRate.toFixed(4)}%`
+          `✅ ${cota.administrator}: ${nInstallments}x R$${installmentValue.toFixed(2)} / PV=R$${presentValue.toFixed(2)} → ${newRate.toFixed(4)}%`
         )
         updated++
       } catch (error) {
@@ -152,7 +129,7 @@ async function main() {
       }
     } else if (newRate === null) {
       console.log(
-        `⚠️  ${cota.administrator}: Could not calculate rate (${nInstallments}x R$${installmentValue.toFixed(2)} / R$${outstandingBalance.toFixed(2)})`
+        `⚠️  ${cota.administrator}: Could not calculate rate (${nInstallments}x R$${installmentValue.toFixed(2)} / PV=R$${presentValue.toFixed(2)})`
       )
       skipped++
     } else {
@@ -163,7 +140,6 @@ async function main() {
 
   console.log('\n📈 Summary:')
   console.log(`   Updated: ${updated}`)
-  console.log(`   Installments fixed: ${installmentFixed}`)
   console.log(`   Skipped: ${skipped}`)
   console.log(`   Failed:  ${failed}`)
   console.log(`   Total:   ${cotas.length}`)

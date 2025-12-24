@@ -89,13 +89,15 @@ export default function PublicarCotaPage() {
     const entryPercentage = calculateEntryPercentage(entryAmount, creditAmount)
 
     // Calculate monthly rate (if we have the required values)
+    // Formula: RATE(n_installments, -installment_value, credit_amount - entry_amount)
     let monthlyRate = 0
-    if (nInstallments > 0 && installmentValue > 0 && outstandingBalance > 0) {
+    const presentValue = creditAmount - entryAmount
+    if (nInstallments > 0 && installmentValue > 0 && presentValue > 0) {
       try {
         monthlyRate = calculateMonthlyRate(
           nInstallments,
           -installmentValue,
-          outstandingBalance,
+          presentValue,
           0,
           0,
           0.01

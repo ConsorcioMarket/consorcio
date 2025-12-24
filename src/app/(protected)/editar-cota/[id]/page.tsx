@@ -90,13 +90,15 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
     const entryPercentage = calculateEntryPercentage(entryAmount, creditAmount)
 
     // Calculate monthly rate (if we have the required values)
+    // Formula: RATE(n_installments, -installment_value, credit_amount - entry_amount)
     let monthlyRate = 0
-    if (nInstallments > 0 && installmentValue > 0 && outstandingBalance > 0) {
+    const presentValue = creditAmount - entryAmount
+    if (nInstallments > 0 && installmentValue > 0 && presentValue > 0) {
       try {
         monthlyRate = calculateMonthlyRate(
           nInstallments,
           -installmentValue,
-          outstandingBalance,
+          presentValue,
           0,
           0,
           0.01
@@ -111,7 +113,7 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
     }
 
     return { entryPercentage, monthlyRate }
-  }, [form.creditAmount, form.entryAmount, form.outstandingBalance, form.installmentValue, form.nInstallments])
+  }, [form.creditAmount, form.entryAmount, form.installmentValue, form.nInstallments])
 
   // Redirect if not authenticated
   useEffect(() => {

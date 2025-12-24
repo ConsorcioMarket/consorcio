@@ -112,16 +112,17 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
   const supabase = useMemo(() => createClient(), [])
 
   // Calculate derived values in real-time
+  // Formula: RATE(n_installments, -installment_value, credit_amount - entry_amount)
   const calculatedValues = useMemo(() => {
     const creditAmount = parseCurrency(editForm.creditAmount)
     const entryAmount = parseCurrency(editForm.entryAmount)
-    const outstandingBalance = parseCurrency(editForm.outstandingBalance)
     const nInstallments = parseInt(editForm.nInstallments) || 0
     const installmentValue = parseCurrency(editForm.installmentValue)
+    const presentValue = creditAmount - entryAmount
 
     const entryPercentage = creditAmount > 0 ? (entryAmount / creditAmount) * 100 : 0
-    const monthlyRate = nInstallments > 0 && installmentValue > 0 && outstandingBalance > 0
-      ? calculateMonthlyRate(nInstallments, -installmentValue, outstandingBalance)
+    const monthlyRate = nInstallments > 0 && installmentValue > 0 && presentValue > 0
+      ? calculateMonthlyRate(nInstallments, -installmentValue, presentValue)
       : 0
 
     return { entryPercentage, monthlyRate }
@@ -217,6 +218,7 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
     const outstandingBalance = parseCurrency(editForm.outstandingBalance)
     const nInstallments = parseInt(editForm.nInstallments) || 0
     const installmentValue = parseCurrency(editForm.installmentValue)
+    const presentValue = creditAmount - entryAmount
 
     // Validation
     if (creditAmount <= 0 || entryAmount <= 0 || nInstallments <= 0) {
@@ -228,8 +230,8 @@ export default function AdminCotaDetailPage({ params }: { params: Promise<{ id: 
     // Calculate new entry percentage
     const entryPercentage = creditAmount > 0 ? (entryAmount / creditAmount) * 100 : 0
 
-    // Calculate monthly rate using RATE formula
-    const monthlyRate = calculateMonthlyRate(nInstallments, -installmentValue, outstandingBalance)
+    // Calculate monthly rate using RATE formula: RATE(n_installments, -installment_value, credit_amount - entry_amount)
+    const monthlyRate = calculateMonthlyRate(nInstallments, -installmentValue, presentValue)
 
     // Get current user for history tracking
     const { data: { user } } = await supabase.auth.getUser()
