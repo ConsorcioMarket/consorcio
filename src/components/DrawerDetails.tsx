@@ -62,13 +62,13 @@ export function DrawerDetails({
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
             <div className="bg-gray-50 p-3 sm:p-4 rounded-lg transition-all duration-200 hover:shadow-md">
               <p className="text-xs sm:text-sm text-muted-foreground">Valor do Crédito</p>
-              <p className="text-base sm:text-xl font-bold text-[hsl(var(--primary))] tabular-nums break-all">
+              <p className="text-base sm:text-xl font-bold text-primary tabular-nums break-all">
                 {formatCurrency(listing.credit_amount)}
               </p>
             </div>
             <div className="bg-gray-50 p-3 sm:p-4 rounded-lg transition-all duration-200 hover:shadow-md">
               <p className="text-xs sm:text-sm text-muted-foreground">Entrada</p>
-              <p className="text-base sm:text-xl font-bold text-[hsl(var(--primary))] tabular-nums break-all">
+              <p className="text-base sm:text-xl font-bold text-primary tabular-nums break-all">
                 {formatCurrency(listing.entry_amount)}
               </p>
             </div>
@@ -112,7 +112,7 @@ export function DrawerDetails({
 
           {/* Disclaimer */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 flex gap-2 sm:gap-3">
-            <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 shrink-0 mt-0.5" />
             <p className="text-xs sm:text-sm text-yellow-800">
               Valores exatos serão confirmados após o vendedor enviar o extrato atualizado do consórcio.
             </p>
