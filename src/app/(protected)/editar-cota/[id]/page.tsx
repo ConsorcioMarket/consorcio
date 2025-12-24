@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, use, useMemo } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Calculator, CheckCircle, AlertTriangle, FileText } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -32,26 +32,41 @@ const ADMINISTRATORS = [
   'Outra',
 ]
 
-// Parse currency input
+// Parse currency input (Brazilian format: 1.234,56)
 function parseCurrency(value: string): number {
-  const cleaned = value.replace(/[^\d,]/g, '').replace(',', '.')
+  // Remove thousand separators (dots) and replace decimal comma with dot
+  const cleaned = value.replace(/\./g, '').replace(',', '.')
   return parseFloat(cleaned) || 0
 }
 
-// Format currency input
-function formatCurrencyInput(value: string | number): string {
-  const num = typeof value === 'number' ? value : parseCurrency(value)
-  if (isNaN(num) || num === 0) return ''
+// Handle currency input - simple approach without auto-formatting while typing
+function handleCurrencyInput(value: string): string {
+  // Only allow digits and one comma (decimal separator)
+  let cleaned = value.replace(/[^\d,]/g, '')
+
+  // Ensure only one comma exists (decimal separator)
+  const commaIndex = cleaned.indexOf(',')
+  if (commaIndex !== -1) {
+    const beforeComma = cleaned.slice(0, commaIndex).replace(/,/g, '')
+    const afterComma = cleaned.slice(commaIndex + 1).replace(/,/g, '').slice(0, 2)
+    cleaned = beforeComma + ',' + afterComma
+  }
+
+  return cleaned
+}
+
+// Format currency for initial display (when loading existing data)
+function formatCurrencyForDisplay(value: number): string {
+  if (isNaN(value) || value === 0) return ''
   return new Intl.NumberFormat('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(num)
+  }).format(value)
 }
 
 export default function EditarCotaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
-  const pathname = usePathname()
   const { user, loading: authLoading } = useAuth()
   const [cota, setCota] = useState<Cota | null>(null)
   const [loading, setLoading] = useState(true)
@@ -72,7 +87,6 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
     cotaNumber: '',
     cotaGroup: '',
     creditAmount: '',
-    outstandingBalance: '',
     nInstallments: '',
     installmentValue: '',
     entryAmount: '',
@@ -82,9 +96,11 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
   const calculations = useMemo(() => {
     const creditAmount = parseCurrency(form.creditAmount)
     const entryAmount = parseCurrency(form.entryAmount)
-    const outstandingBalance = parseCurrency(form.outstandingBalance)
     const installmentValue = parseCurrency(form.installmentValue)
     const nInstallments = parseInt(form.nInstallments) || 0
+
+    // Calculate outstanding balance (Saldo Devedor = Crédito - Entrada)
+    const outstandingBalance = creditAmount - entryAmount
 
     // Calculate entry percentage
     const entryPercentage = calculateEntryPercentage(entryAmount, creditAmount)
@@ -92,7 +108,7 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
     // Calculate monthly rate (if we have the required values)
     // Formula: RATE(n_installments, -installment_value, credit_amount - entry_amount)
     let monthlyRate = 0
-    const presentValue = creditAmount - entryAmount
+    const presentValue = outstandingBalance
     if (nInstallments > 0 && installmentValue > 0 && presentValue > 0) {
       try {
         monthlyRate = calculateMonthlyRate(
@@ -112,7 +128,7 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
       }
     }
 
-    return { entryPercentage, monthlyRate }
+    return { entryPercentage, monthlyRate, outstandingBalance }
   }, [form.creditAmount, form.entryAmount, form.installmentValue, form.nInstallments])
 
   // Redirect if not authenticated
@@ -178,21 +194,20 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
         otherAdministrator: isKnownAdmin ? '' : data.administrator,
         cotaNumber: data.cota_number || '',
         cotaGroup: data.cota_group || '',
-        creditAmount: formatCurrencyInput(data.credit_amount),
-        outstandingBalance: formatCurrencyInput(data.outstanding_balance),
+        creditAmount: formatCurrencyForDisplay(data.credit_amount),
         nInstallments: String(data.n_installments),
-        installmentValue: formatCurrencyInput(data.installment_value),
-        entryAmount: formatCurrencyInput(data.entry_amount),
+        installmentValue: formatCurrencyForDisplay(data.installment_value),
+        entryAmount: formatCurrencyForDisplay(data.entry_amount),
       })
 
       setLoading(false)
     }
 
-    if (user) {
+    if (user && !cota) {
       fetchCota()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase client is stable
-  }, [user, id, pathname])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only fetch once when user and id are available
+  }, [user, id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -203,8 +218,8 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
 
     // Validation
     const creditAmount = parseCurrency(form.creditAmount)
-    const outstandingBalance = parseCurrency(form.outstandingBalance)
     const entryAmount = parseCurrency(form.entryAmount)
+    const outstandingBalance = creditAmount - entryAmount // Auto-calculated
     const installmentValue = parseCurrency(form.installmentValue)
     const nInstallments = parseInt(form.nInstallments) || 0
     const administrator = form.administrator === 'Outra'
@@ -494,10 +509,10 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
                     <Label htmlFor="creditAmount">Valor do Crédito (R$) *</Label>
                     <Input
                       id="creditAmount"
-                      placeholder="Ex: 200.000,00"
+                      placeholder="Ex: 200000,00"
                       value={form.creditAmount}
                       onChange={(e) => {
-                        const formatted = formatCurrencyInput(e.target.value)
+                        const formatted = handleCurrencyInput(e.target.value)
                         setForm({ ...form, creditAmount: formatted })
                       }}
                       required
@@ -512,10 +527,10 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
                     <Label htmlFor="entryAmount">Valor da Entrada (R$) *</Label>
                     <Input
                       id="entryAmount"
-                      placeholder="Ex: 50.000,00"
+                      placeholder="Ex: 50000,00"
                       value={form.entryAmount}
                       onChange={(e) => {
-                        const formatted = formatCurrencyInput(e.target.value)
+                        const formatted = handleCurrencyInput(e.target.value)
                         setForm({ ...form, entryAmount: formatted })
                       }}
                       required
@@ -525,21 +540,17 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
                     </p>
                   </div>
 
-                  {/* Outstanding Balance */}
+                  {/* Outstanding Balance - Auto-calculated */}
                   <div className="space-y-2">
-                    <Label htmlFor="outstandingBalance">Saldo Devedor (R$) *</Label>
+                    <Label htmlFor="outstandingBalance">Saldo Devedor (R$)</Label>
                     <Input
                       id="outstandingBalance"
-                      placeholder="Ex: 150.000,00"
-                      value={form.outstandingBalance}
-                      onChange={(e) => {
-                        const formatted = formatCurrencyInput(e.target.value)
-                        setForm({ ...form, outstandingBalance: formatted })
-                      }}
-                      required
+                      value={calculations.outstandingBalance > 0 ? formatCurrencyForDisplay(calculations.outstandingBalance) : ''}
+                      disabled
+                      className="bg-muted"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Valor restante a ser pago em parcelas
+                      Calculado automaticamente (Crédito - Entrada)
                     </p>
                   </div>
 
@@ -564,10 +575,10 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
                       <Label htmlFor="installmentValue">Valor da Parcela (R$) *</Label>
                       <Input
                         id="installmentValue"
-                        placeholder="Ex: 1.200,00"
+                        placeholder="Ex: 1200,00"
                         value={form.installmentValue}
                         onChange={(e) => {
-                          const formatted = formatCurrencyInput(e.target.value)
+                          const formatted = handleCurrencyInput(e.target.value)
                           setForm({ ...form, installmentValue: formatted })
                         }}
                         required

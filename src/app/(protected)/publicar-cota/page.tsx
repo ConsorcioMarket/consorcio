@@ -54,6 +54,15 @@ function handleCurrencyInput(value: string): string {
   return cleaned
 }
 
+// Format currency for display (with thousand separators)
+function formatCurrencyForDisplay(value: number): string {
+  if (isNaN(value) || value === 0) return ''
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
 export default function PublicarCotaPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
@@ -71,7 +80,6 @@ export default function PublicarCotaPage() {
     cotaNumber: '',
     cotaGroup: '',
     creditAmount: '',
-    outstandingBalance: '',
     nInstallments: '',
     installmentValue: '',
     entryAmount: '',
@@ -81,9 +89,11 @@ export default function PublicarCotaPage() {
   const calculations = useMemo(() => {
     const creditAmount = parseCurrency(form.creditAmount)
     const entryAmount = parseCurrency(form.entryAmount)
-    const outstandingBalance = parseCurrency(form.outstandingBalance)
     const installmentValue = parseCurrency(form.installmentValue)
     const nInstallments = parseInt(form.nInstallments) || 0
+
+    // Calculate outstanding balance (Saldo Devedor = Crédito - Entrada)
+    const outstandingBalance = creditAmount - entryAmount
 
     // Calculate entry percentage
     const entryPercentage = calculateEntryPercentage(entryAmount, creditAmount)
@@ -91,13 +101,12 @@ export default function PublicarCotaPage() {
     // Calculate monthly rate (if we have the required values)
     // Formula: RATE(n_installments, -installment_value, credit_amount - entry_amount)
     let monthlyRate = 0
-    const presentValue = creditAmount - entryAmount
-    if (nInstallments > 0 && installmentValue > 0 && presentValue > 0) {
+    if (nInstallments > 0 && installmentValue > 0 && outstandingBalance > 0) {
       try {
         monthlyRate = calculateMonthlyRate(
           nInstallments,
           -installmentValue,
-          presentValue,
+          outstandingBalance,
           0,
           0,
           0.01
@@ -111,8 +120,8 @@ export default function PublicarCotaPage() {
       }
     }
 
-    return { entryPercentage, monthlyRate }
-  }, [form.creditAmount, form.entryAmount, form.outstandingBalance, form.installmentValue, form.nInstallments])
+    return { entryPercentage, monthlyRate, outstandingBalance }
+  }, [form.creditAmount, form.entryAmount, form.installmentValue, form.nInstallments])
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -143,8 +152,8 @@ export default function PublicarCotaPage() {
 
     // Validation
     const creditAmount = parseCurrency(form.creditAmount)
-    const outstandingBalance = parseCurrency(form.outstandingBalance)
     const entryAmount = parseCurrency(form.entryAmount)
+    const outstandingBalance = creditAmount - entryAmount // Auto-calculated
     const installmentValue = parseCurrency(form.installmentValue)
     const nInstallments = parseInt(form.nInstallments) || 0
     const administrator = form.administrator === 'Outra'
@@ -274,7 +283,6 @@ export default function PublicarCotaPage() {
                         cotaNumber: '',
                         cotaGroup: '',
                         creditAmount: '',
-                        outstandingBalance: '',
                         nInstallments: '',
                         installmentValue: '',
                         entryAmount: '',
@@ -448,21 +456,17 @@ export default function PublicarCotaPage() {
                     </p>
                   </div>
 
-                  {/* Outstanding Balance */}
+                  {/* Outstanding Balance - Auto-calculated */}
                   <div className="space-y-2">
-                    <Label htmlFor="outstandingBalance">Saldo Devedor (R$) *</Label>
+                    <Label htmlFor="outstandingBalance">Saldo Devedor (R$)</Label>
                     <Input
                       id="outstandingBalance"
-                      placeholder="Ex: 150.000,00"
-                      value={form.outstandingBalance}
-                      onChange={(e) => {
-                        const formatted = handleCurrencyInput(e.target.value)
-                        setForm({ ...form, outstandingBalance: formatted })
-                      }}
-                      required
+                      value={calculations.outstandingBalance > 0 ? formatCurrencyForDisplay(calculations.outstandingBalance) : ''}
+                      disabled
+                      className="bg-muted"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Valor restante a ser pago em parcelas
+                      Calculado automaticamente (Crédito - Entrada)
                     </p>
                   </div>
 
