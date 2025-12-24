@@ -13,23 +13,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { calculateEntryPercentage, calculateMonthlyRate, formatCurrency } from '@/lib/utils'
 import { useToast } from '@/components/ui/toast'
 
-// Common administrators list
-const ADMINISTRATORS = [
-  'Bradesco Consórcios',
-  'Itaú Consórcios',
-  'Caixa Consórcios',
-  'Santander Consórcios',
-  'BB Consórcios',
-  'Porto Seguro Consórcios',
-  'Rodobens Consórcios',
-  'Embracon',
-  'Magalu Consórcios',
-  'Consórcio Nacional Honda',
-  'Consórcio Volkswagen',
-  'Consórcio Fiat',
-  'Consórcio GM (Chevrolet)',
-  'Outra',
-]
+interface Administrator {
+  id: string
+  name: string
+}
 
 // Parse currency input (Brazilian format: 1.234,56)
 function parseCurrency(value: string): number {
@@ -70,6 +57,8 @@ export default function PublicarCotaPage() {
   const [success, setSuccess] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [administrators, setAdministrators] = useState<Administrator[]>([])
+  const [loadingAdmins, setLoadingAdmins] = useState(true)
 
   const supabase = createClient()
 
@@ -129,6 +118,28 @@ export default function PublicarCotaPage() {
       router.push('/login?returnUrl=/publicar-cota')
     }
   }, [user, authLoading, router])
+
+  // Fetch administrators from database
+  useEffect(() => {
+    const fetchAdministrators = async () => {
+      // Using type assertion since administrators table may not be in generated types yet
+      const { data, error } = await (supabase
+        .from('administrators' as 'cotas') // Type assertion for new table
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name') as unknown as Promise<{ data: Administrator[] | null; error: Error | null }>)
+
+      if (error) {
+        console.error('Error fetching administrators:', error)
+      } else {
+        setAdministrators(data || [])
+      }
+      setLoadingAdmins(false)
+    }
+
+    fetchAdministrators()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -357,13 +368,17 @@ export default function PublicarCotaPage() {
                       value={form.administrator}
                       onChange={(e) => setForm({ ...form, administrator: e.target.value })}
                       required
+                      disabled={loadingAdmins}
                     >
-                      <option value="">Selecione a administradora</option>
-                      {ADMINISTRATORS.map((admin) => (
-                        <option key={admin} value={admin}>
-                          {admin}
+                      <option value="">
+                        {loadingAdmins ? 'Carregando...' : 'Selecione a administradora'}
+                      </option>
+                      {administrators.map((admin) => (
+                        <option key={admin.id} value={admin.name}>
+                          {admin.name}
                         </option>
                       ))}
+                      <option value="Outra">Outra</option>
                     </select>
                   </div>
 

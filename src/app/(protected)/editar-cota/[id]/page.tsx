@@ -14,23 +14,10 @@ import { calculateEntryPercentage, calculateMonthlyRate, formatCurrency } from '
 import { DocumentUpload } from '@/components/DocumentUpload'
 import type { Cota, Document } from '@/types/database'
 
-// Common administrators list
-const ADMINISTRATORS = [
-  'Bradesco Consórcios',
-  'Itaú Consórcios',
-  'Caixa Consórcios',
-  'Santander Consórcios',
-  'BB Consórcios',
-  'Porto Seguro Consórcios',
-  'Rodobens Consórcios',
-  'Embracon',
-  'Magalu Consórcios',
-  'Consórcio Nacional Honda',
-  'Consórcio Volkswagen',
-  'Consórcio Fiat',
-  'Consórcio GM (Chevrolet)',
-  'Outra',
-]
+interface Administrator {
+  id: string
+  name: string
+}
 
 // Parse currency input (Brazilian format: 1.234,56)
 function parseCurrency(value: string): number {
@@ -77,6 +64,8 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
   const [notAllowed, setNotAllowed] = useState(false)
   const [statementDocument, setStatementDocument] = useState<Document | null>(null)
   const [documentError, setDocumentError] = useState<string | null>(null)
+  const [administrators, setAdministrators] = useState<Administrator[]>([])
+  const [loadingAdmins, setLoadingAdmins] = useState(true)
 
   const supabase = createClient()
 
@@ -130,6 +119,25 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
 
     return { entryPercentage, monthlyRate, outstandingBalance }
   }, [form.creditAmount, form.entryAmount, form.installmentValue, form.nInstallments])
+
+  // Fetch administrators from database
+  useEffect(() => {
+    const fetchAdministrators = async () => {
+      const { data, error } = await (supabase
+        .from('administrators' as 'cotas')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name') as unknown as Promise<{ data: Administrator[] | null; error: Error | null }>)
+      if (error) {
+        console.error('Error fetching administrators:', error)
+      } else {
+        setAdministrators(data || [])
+      }
+      setLoadingAdmins(false)
+    }
+    fetchAdministrators()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -186,7 +194,8 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
       }
 
       // Check if administrator is in the list or custom
-      const isKnownAdmin = ADMINISTRATORS.includes(data.administrator)
+      const adminNames = administrators.map(a => a.name)
+      const isKnownAdmin = adminNames.includes(data.administrator) || data.administrator === 'Outra'
 
       // Initialize form with cota data
       setForm({
@@ -203,11 +212,11 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
       setLoading(false)
     }
 
-    if (user && !cota) {
+    if (user && !cota && !loadingAdmins) {
       fetchCota()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only fetch once when user and id are available
-  }, [user, id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only fetch once when user, id, and administrators are available
+  }, [user, id, loadingAdmins])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -443,11 +452,18 @@ export default function EditarCotaPage({ params }: { params: Promise<{ id: strin
                       required
                     >
                       <option value="">Selecione a administradora</option>
-                      {ADMINISTRATORS.map((admin) => (
-                        <option key={admin} value={admin}>
-                          {admin}
-                        </option>
-                      ))}
+                      {loadingAdmins ? (
+                        <option disabled>Carregando...</option>
+                      ) : (
+                        <>
+                          {administrators.map((admin) => (
+                            <option key={admin.id} value={admin.name}>
+                              {admin.name}
+                            </option>
+                          ))}
+                          <option value="Outra">Outra</option>
+                        </>
+                      )}
                     </select>
                   </div>
 

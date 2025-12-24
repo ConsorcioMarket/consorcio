@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CreditCard, FileText, Users, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import { CreditCard, FileText, Users, Clock, CheckCircle, AlertCircle, Building2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -180,6 +180,12 @@ export default function AdminDashboard() {
               <Button variant="outline" className="w-full justify-start">
                 <Users className="h-4 w-4 mr-2" />
                 Gerenciar Usuários
+              </Button>
+            </Link>
+            <Link href="/admin/administradoras" className="block">
+              <Button variant="outline" className="w-full justify-start">
+                <Building2 className="h-4 w-4 mr-2" />
+                Gerenciar Administradoras
               </Button>
             </Link>
           </CardContent>
