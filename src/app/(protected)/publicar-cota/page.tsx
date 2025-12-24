@@ -68,6 +68,8 @@ export default function PublicarCotaPage() {
   const [form, setForm] = useState({
     administrator: '',
     otherAdministrator: '',
+    cotaNumber: '',
+    cotaGroup: '',
     creditAmount: '',
     outstandingBalance: '',
     nInstallments: '',
@@ -179,13 +181,15 @@ export default function PublicarCotaPage() {
         id: crypto.randomUUID(),
         seller_id: user.id,
         administrator,
+        cota_number: form.cotaNumber,
+        cota_group: form.cotaGroup,
         credit_amount: creditAmount,
         outstanding_balance: outstandingBalance,
         n_installments: nInstallments,
         installment_value: installmentValue,
         entry_amount: entryAmount,
         entry_percentage: calculations.entryPercentage,
-        monthly_rate: calculations.monthlyRate > 0 ? calculations.monthlyRate : null,
+        monthly_rate: calculations.monthlyRate !== null && isFinite(calculations.monthlyRate) && calculations.monthlyRate !== 0 ? calculations.monthlyRate : null,
         status: 'AVAILABLE',
         created_at: now,
         updated_at: now,
@@ -265,6 +269,8 @@ export default function PublicarCotaPage() {
                       setForm({
                         administrator: '',
                         otherAdministrator: '',
+                        cotaNumber: '',
+                        cotaGroup: '',
                         creditAmount: '',
                         outstandingBalance: '',
                         nInstallments: '',
@@ -352,17 +358,57 @@ export default function PublicarCotaPage() {
                   </div>
 
                   {form.administrator === 'Outra' && (
+                    <>
+                      <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
+                        <strong>Atenção:</strong> Antes de prosseguir, entre em contato conosco para verificar se esta administradora é permitida em nossa plataforma.
+                        <br />
+                        <span className="text-amber-700">
+                          WhatsApp: +55 13 99105-3598 | Email: Luizadeffernandes@gmail.com
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="otherAdministrator">Nome da Administradora *</Label>
+                        <Input
+                          id="otherAdministrator"
+                          placeholder="Digite o nome da administradora"
+                          value={form.otherAdministrator}
+                          onChange={(e) => setForm({ ...form, otherAdministrator: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Cota Number and Group */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="otherAdministrator">Nome da Administradora *</Label>
+                      <Label htmlFor="cotaNumber">Número da Cota *</Label>
                       <Input
-                        id="otherAdministrator"
-                        placeholder="Digite o nome da administradora"
-                        value={form.otherAdministrator}
-                        onChange={(e) => setForm({ ...form, otherAdministrator: e.target.value })}
+                        id="cotaNumber"
+                        placeholder="Ex: 12345"
+                        value={form.cotaNumber}
+                        onChange={(e) => setForm({ ...form, cotaNumber: e.target.value })}
                         required
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Número de identificação da cota
+                      </p>
                     </div>
-                  )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="cotaGroup">Grupo da Cota *</Label>
+                      <Input
+                        id="cotaGroup"
+                        placeholder="Ex: 1234"
+                        value={form.cotaGroup}
+                        onChange={(e) => setForm({ ...form, cotaGroup: e.target.value })}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Número do grupo do consórcio
+                      </p>
+                    </div>
+                  </div>
 
                   {/* Credit Amount */}
                   <div className="space-y-2">
@@ -451,7 +497,7 @@ export default function PublicarCotaPage() {
                   </div>
 
                   {/* Calculated Values */}
-                  {(calculations.entryPercentage > 0 || calculations.monthlyRate > 0) && (
+                  {(calculations.entryPercentage > 0 || (calculations.monthlyRate !== 0 && isFinite(calculations.monthlyRate))) && (
                     <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                       <div className="flex items-center gap-2 text-sm font-medium">
                         <Calculator className="h-4 w-4" />
@@ -467,7 +513,7 @@ export default function PublicarCotaPage() {
                         <div>
                           <p className="text-muted-foreground">Taxa Mensal</p>
                           <p className="font-semibold text-lg">
-                            {calculations.monthlyRate > 0
+                            {calculations.monthlyRate !== 0 && isFinite(calculations.monthlyRate)
                               ? `${calculations.monthlyRate.toFixed(4)}%`
                               : '-'}
                           </p>

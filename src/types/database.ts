@@ -156,6 +156,8 @@ export interface Database {
           id: string
           seller_id: string
           administrator: string
+          cota_number: string
+          cota_group: string
           credit_amount: number
           outstanding_balance: number
           n_installments: number
@@ -171,6 +173,8 @@ export interface Database {
           id?: string
           seller_id: string
           administrator: string
+          cota_number: string
+          cota_group: string
           credit_amount: number
           outstanding_balance: number
           n_installments: number
@@ -186,6 +190,8 @@ export interface Database {
           id?: string
           seller_id?: string
           administrator?: string
+          cota_number?: string
+          cota_group?: string
           credit_amount?: number
           outstanding_balance?: number
           n_installments?: number

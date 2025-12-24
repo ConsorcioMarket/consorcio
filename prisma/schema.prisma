@@ -1,5 +1,3 @@
-// Prisma Schema for Consórcio Market
-
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = []
@@ -11,9 +9,155 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ============================================
-// ENUMS
-// ============================================
+model ProfilePF {
+  id                     String            @id @default(uuid())
+  email                  String            @default("")
+  fullName               String            @map("full_name")
+  cpf                    String?
+  phone                  String
+  role                   UserRole          @default(USER)
+  status                 PFStatus          @default(INCOMPLETE)
+  addressStreet          String?           @map("address_street")
+  addressNumber          String?           @map("address_number")
+  addressComplement      String?           @map("address_complement")
+  addressNeighborhood    String?           @map("address_neighborhood")
+  addressCity            String?           @map("address_city")
+  addressState           String?           @map("address_state")
+  addressZip             String?           @map("address_zip")
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+  cotaHistoryChanges     CotaHistory[]     @relation("CotaHistoryChanger")
+  cotasAsSeller          Cota[]            @relation("SellerCotas")
+  documentsReviewed      Document[]        @relation("DocumentReviewer")
+  profilesPJ             ProfilePJ[]
+  proposalHistoryChanges ProposalHistory[] @relation("ProposalHistoryChanger")
+  proposalsAsBuyer       Proposal[]        @relation("BuyerProposals")
+
+  @@map("profiles_pf")
+}
+
+model ProfilePJ {
+  id                  String    @id @default(uuid())
+  pfId                String    @map("pf_id")
+  legalName           String    @map("legal_name")
+  cnpj                String    @unique
+  companyEmail        String?   @map("company_email")
+  companyPhone        String?   @map("company_phone")
+  addressStreet       String?   @map("address_street")
+  addressNumber       String?   @map("address_number")
+  addressComplement   String?   @map("address_complement")
+  addressNeighborhood String?   @map("address_neighborhood")
+  addressCity         String?   @map("address_city")
+  addressState        String?   @map("address_state")
+  addressZip          String?   @map("address_zip")
+  status              PJStatus  @default(INCOMPLETE)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  profilePF           ProfilePF @relation(fields: [pfId], references: [id], onDelete: Cascade)
+
+  @@map("profiles_pj")
+}
+
+model Cota {
+  id                 String        @id @default(uuid())
+  sellerId           String        @map("seller_id")
+  administrator      String
+  cotaNumber         String        @map("cota_number")
+  cotaGroup          String        @map("cota_group")
+  creditAmount       Decimal       @map("credit_amount") @db.Decimal(15, 2)
+  outstandingBalance Decimal       @map("outstanding_balance") @db.Decimal(15, 2)
+  nInstallments      Int           @map("n_installments")
+  installmentValue   Decimal       @map("installment_value") @db.Decimal(15, 2)
+  entryAmount        Decimal       @map("entry_amount") @db.Decimal(15, 2)
+  entryPercentage    Decimal       @map("entry_percentage") @db.Decimal(5, 2)
+  monthlyRate        Decimal?      @map("monthly_rate") @db.Decimal(6, 4)
+  status             CotaStatus    @default(AVAILABLE)
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  cotaHistory        CotaHistory[]
+  seller             ProfilePF     @relation("SellerCotas", fields: [sellerId], references: [id], onDelete: Cascade)
+  proposals          Proposal[]
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([administrator])
+  @@index([creditAmount])
+  @@index([entryPercentage])
+  @@map("cotas")
+}
+
+model Proposal {
+  id              String            @id @default(uuid())
+  cotaId          String            @map("cota_id")
+  buyerPfId       String            @map("buyer_pf_id")
+  buyerType       BuyerType         @map("buyer_type")
+  buyerEntityId   String            @map("buyer_entity_id")
+  groupId         String?           @map("group_id")
+  status          ProposalStatus    @default(UNDER_REVIEW)
+  rejectionReason String?           @map("rejection_reason")
+  transferFee     Decimal?          @map("transfer_fee") @db.Decimal(15, 2)
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  proposalHistory ProposalHistory[]
+  buyerPf         ProfilePF         @relation("BuyerProposals", fields: [buyerPfId], references: [id], onDelete: Cascade)
+  cota            Cota              @relation(fields: [cotaId], references: [id], onDelete: Cascade)
+
+  @@index([cotaId])
+  @@index([buyerPfId])
+  @@index([groupId])
+  @@index([status])
+  @@map("proposals")
+}
+
+model Document {
+  id              String         @id @default(uuid())
+  ownerId         String         @map("owner_id")
+  ownerType       OwnerType      @map("owner_type")
+  documentType    DocumentType   @map("document_type")
+  fileUrl         String         @map("file_url")
+  fileName        String         @map("file_name")
+  status          DocumentStatus @default(PENDING_UPLOAD)
+  reviewedBy      String?        @map("reviewed_by")
+  reviewedAt      DateTime?      @map("reviewed_at")
+  rejectionReason String?        @map("rejection_reason")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  reviewer        ProfilePF?     @relation("DocumentReviewer", fields: [reviewedBy], references: [id])
+
+  @@index([ownerId, ownerType])
+  @@index([status])
+  @@map("documents")
+}
+
+model ProposalHistory {
+  id         String          @id @default(uuid())
+  proposalId String          @map("proposal_id")
+  oldStatus  ProposalStatus? @map("old_status")
+  newStatus  ProposalStatus  @map("new_status")
+  changedBy  String?         @map("changed_by")
+  notes      String?
+  changedAt  DateTime        @default(now()) @map("changed_at")
+  changer    ProfilePF?      @relation("ProposalHistoryChanger", fields: [changedBy], references: [id])
+  proposal   Proposal        @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@map("proposal_history")
+}
+
+model CotaHistory {
+  id           String     @id @default(uuid())
+  cotaId       String     @map("cota_id")
+  fieldChanged String     @map("field_changed")
+  oldValue     String?    @map("old_value")
+  newValue     String?    @map("new_value")
+  changedBy    String?    @map("changed_by")
+  changedAt    DateTime   @default(now()) @map("changed_at")
+  changer      ProfilePF? @relation("CotaHistoryChanger", fields: [changedBy], references: [id])
+  cota         Cota       @relation(fields: [cotaId], references: [id], onDelete: Cascade)
+
+  @@index([cotaId])
+  @@map("cota_history")
+}
 
 enum UserRole {
   USER
@@ -80,170 +224,4 @@ enum DocumentType {
   PJ_STATEMENT
   PJ_EXTRA
   COTA_STATEMENT
-}
-
-// ============================================
-// MODELS
-// ============================================
-
-model ProfilePF {
-  id                   String   @id @default(uuid())
-  email                String   @default("")
-  fullName             String   @map("full_name")
-  cpf                  String?
-  phone                String
-  role                 UserRole @default(USER)
-  status               PFStatus @default(INCOMPLETE)
-  addressStreet        String?  @map("address_street")
-  addressNumber        String?  @map("address_number")
-  addressComplement    String?  @map("address_complement")
-  addressNeighborhood  String?  @map("address_neighborhood")
-  addressCity          String?  @map("address_city")
-  addressState         String?  @map("address_state")
-  addressZip           String?  @map("address_zip")
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  profilesPJ           ProfilePJ[]
-  cotasAsSeller        Cota[]            @relation("SellerCotas")
-  proposalsAsBuyer     Proposal[]        @relation("BuyerProposals")
-  documentsReviewed    Document[]        @relation("DocumentReviewer")
-  proposalHistoryChanges ProposalHistory[] @relation("ProposalHistoryChanger")
-  cotaHistoryChanges   CotaHistory[]     @relation("CotaHistoryChanger")
-
-  @@map("profiles_pf")
-}
-
-model ProfilePJ {
-  id                   String    @id @default(uuid())
-  pfId                 String    @map("pf_id")
-  legalName            String    @map("legal_name")
-  cnpj                 String    @unique
-  companyEmail         String?   @map("company_email")
-  companyPhone         String?   @map("company_phone")
-  addressStreet        String?   @map("address_street")
-  addressNumber        String?   @map("address_number")
-  addressComplement    String?   @map("address_complement")
-  addressNeighborhood  String?   @map("address_neighborhood")
-  addressCity          String?   @map("address_city")
-  addressState         String?   @map("address_state")
-  addressZip           String?   @map("address_zip")
-  status               PJStatus  @default(INCOMPLETE)
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  profilePF            ProfilePF @relation(fields: [pfId], references: [id], onDelete: Cascade)
-
-  @@map("profiles_pj")
-}
-
-model Cota {
-  id                  String      @id @default(uuid())
-  sellerId            String      @map("seller_id")
-  administrator       String
-  creditAmount        Decimal     @map("credit_amount") @db.Decimal(15, 2)
-  outstandingBalance  Decimal     @map("outstanding_balance") @db.Decimal(15, 2)
-  nInstallments       Int         @map("n_installments")
-  installmentValue    Decimal     @map("installment_value") @db.Decimal(15, 2)
-  entryAmount         Decimal     @map("entry_amount") @db.Decimal(15, 2)
-  entryPercentage     Decimal     @map("entry_percentage") @db.Decimal(5, 2)
-  monthlyRate         Decimal?    @map("monthly_rate") @db.Decimal(6, 4)
-  status              CotaStatus  @default(AVAILABLE)
-  createdAt           DateTime    @default(now()) @map("created_at")
-  updatedAt           DateTime    @updatedAt @map("updated_at")
-
-  // Relations
-  seller              ProfilePF   @relation("SellerCotas", fields: [sellerId], references: [id], onDelete: Cascade)
-  proposals           Proposal[]
-  cotaHistory         CotaHistory[]
-
-  @@index([sellerId])
-  @@index([status])
-  @@index([administrator])
-  @@index([creditAmount])
-  @@index([entryPercentage])
-  @@map("cotas")
-}
-
-model Proposal {
-  id                String          @id @default(uuid())
-  cotaId            String          @map("cota_id")
-  buyerPfId         String          @map("buyer_pf_id")
-  buyerType         BuyerType       @map("buyer_type")
-  buyerEntityId     String          @map("buyer_entity_id")
-  groupId           String?         @map("group_id")
-  status            ProposalStatus  @default(UNDER_REVIEW)
-  rejectionReason   String?         @map("rejection_reason")
-  transferFee       Decimal?        @map("transfer_fee") @db.Decimal(15, 2)
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
-
-  // Relations
-  cota              Cota            @relation(fields: [cotaId], references: [id], onDelete: Cascade)
-  buyerPf           ProfilePF       @relation("BuyerProposals", fields: [buyerPfId], references: [id], onDelete: Cascade)
-  proposalHistory   ProposalHistory[]
-
-  @@index([cotaId])
-  @@index([buyerPfId])
-  @@index([groupId])
-  @@index([status])
-  @@map("proposals")
-}
-
-model Document {
-  id                String          @id @default(uuid())
-  ownerId           String          @map("owner_id")
-  ownerType         OwnerType       @map("owner_type")
-  documentType      DocumentType    @map("document_type")
-  fileUrl           String          @map("file_url")
-  fileName          String          @map("file_name")
-  status            DocumentStatus  @default(PENDING_UPLOAD)
-  reviewedBy        String?         @map("reviewed_by")
-  reviewedAt        DateTime?       @map("reviewed_at")
-  rejectionReason   String?         @map("rejection_reason")
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
-
-  // Relations
-  reviewer          ProfilePF?      @relation("DocumentReviewer", fields: [reviewedBy], references: [id])
-
-  @@index([ownerId, ownerType])
-  @@index([status])
-  @@map("documents")
-}
-
-model ProposalHistory {
-  id          String          @id @default(uuid())
-  proposalId  String          @map("proposal_id")
-  oldStatus   ProposalStatus? @map("old_status")
-  newStatus   ProposalStatus  @map("new_status")
-  changedBy   String?         @map("changed_by")
-  notes       String?
-  changedAt   DateTime        @default(now()) @map("changed_at")
-
-  // Relations
-  proposal    Proposal        @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  changer     ProfilePF?      @relation("ProposalHistoryChanger", fields: [changedBy], references: [id])
-
-  @@index([proposalId])
-  @@map("proposal_history")
-}
-
-model CotaHistory {
-  id            String    @id @default(uuid())
-  cotaId        String    @map("cota_id")
-  fieldChanged  String    @map("field_changed")
-  oldValue      String?   @map("old_value")
-  newValue      String?   @map("new_value")
-  changedBy     String?   @map("changed_by")
-  changedAt     DateTime  @default(now()) @map("changed_at")
-
-  // Relations
-  cota          Cota      @relation(fields: [cotaId], references: [id], onDelete: Cascade)
-  changer       ProfilePF? @relation("CotaHistoryChanger", fields: [changedBy], references: [id])
-
-  @@index([cotaId])
-  @@map("cota_history")
 }

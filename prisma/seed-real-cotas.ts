@@ -100,6 +100,8 @@ async function main() {
       data: {
         sellerId: seller.id,
         administrator: cota.admin,
+        cotaNumber: `COTA-${String(created + 1).padStart(4, '0')}`,
+        cotaGroup: `GRP-${String(Math.floor(created / 10) + 1).padStart(3, '0')}`,
         creditAmount: cota.credit,
         entryAmount: cota.entry,
         entryPercentage: cota.entryPercent,

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import type { Cota } from '@/types/database'
 
 interface CartItem extends Cota {
@@ -25,6 +25,7 @@ interface CartContextValue {
   clearCart: () => void
   isInCart: (cotaId: string) => boolean
   canAddToCart: (cota: Cota) => { canAdd: boolean; reason?: string }
+  isHydrated: boolean
 }
 
 const CartContext = createContext<CartContextValue | undefined>(undefined)
@@ -56,35 +57,41 @@ function calculateTotals(items: CartItem[]): CartTotals {
   }
 }
 
-// Helper to load cart from localStorage
-function loadCartFromStorage(): CartItem[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const stored = localStorage.getItem(CART_STORAGE_KEY)
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      if (Array.isArray(parsed)) {
-        return parsed
-      }
-    }
-  } catch (error) {
-    console.error('Error loading cart from storage:', error)
-  }
-  return []
-}
-
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(loadCartFromStorage)
+  // Start with empty array to avoid hydration mismatch
+  const [items, setItems] = useState<CartItem[]>([])
   const [isOpen, setIsOpen] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
+  const isInitialized = useRef(false)
 
-  // Save cart to localStorage when items change
+  // Load cart from localStorage after hydration (client-side only)
   useEffect(() => {
+    if (isInitialized.current) return
+    isInitialized.current = true
+
+    try {
+      const stored = localStorage.getItem(CART_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          setItems(parsed)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading cart from storage:', error)
+    }
+    setIsHydrated(true)
+  }, [])
+
+  // Save cart to localStorage when items change (but not on initial load)
+  useEffect(() => {
+    if (!isHydrated) return
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
     } catch (error) {
       console.error('Error saving cart to storage:', error)
     }
-  }, [items])
+  }, [items, isHydrated])
 
   const totals = calculateTotals(items)
 
@@ -159,6 +166,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearCart,
         isInCart,
         canAddToCart,
+        isHydrated,
       }}
     >
       {children}

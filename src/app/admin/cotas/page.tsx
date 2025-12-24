@@ -24,6 +24,8 @@ import type { CotaStatus } from '@/types/database'
 interface CotaWithSeller {
   id: string
   administrator: string
+  cota_number: string
+  cota_group: string
   credit_amount: number
   entry_amount: number
   n_installments: number
@@ -74,6 +76,8 @@ export default function AdminCotasPage() {
       .select(`
         id,
         administrator,
+        cota_number,
+        cota_group,
         credit_amount,
         entry_amount,
         n_installments,
@@ -122,6 +126,8 @@ export default function AdminCotasPage() {
     const transformedCotas: CotaWithSeller[] = (data || []).map((cota) => ({
       id: cota.id,
       administrator: cota.administrator,
+      cota_number: cota.cota_number,
+      cota_group: cota.cota_group,
       credit_amount: Number(cota.credit_amount),
       entry_amount: Number(cota.entry_amount),
       n_installments: cota.n_installments,
@@ -292,6 +298,9 @@ export default function AdminCotasPage() {
                       <div className="min-w-0 flex-1">
                         <p className="font-medium">{cota.administrator}</p>
                         <p className="text-xs text-muted-foreground">{cota.seller?.full_name || '-'}</p>
+                        <p className="text-xs text-primary font-medium">
+                          Cota: {cota.cota_number} | Grupo: {cota.cota_group}
+                        </p>
                       </div>
                       <select
                         value={cota.status}
@@ -350,6 +359,8 @@ export default function AdminCotasPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left p-3 font-medium">Administradora</th>
+                      <th className="text-center p-3 font-medium">Cota</th>
+                      <th className="text-center p-3 font-medium">Grupo</th>
                       <th className="text-left p-3 font-medium">Vendedor</th>
                       <th className="text-right p-3 font-medium">Crédito</th>
                       <th className="text-right p-3 font-medium">Entrada</th>
@@ -367,6 +378,12 @@ export default function AdminCotasPage() {
                           <div className="text-xs text-muted-foreground">
                             {new Date(cota.created_at).toLocaleDateString('pt-BR')}
                           </div>
+                        </td>
+                        <td className="p-3 text-center font-medium text-primary">
+                          {cota.cota_number}
+                        </td>
+                        <td className="p-3 text-center font-medium text-primary">
+                          {cota.cota_group}
                         </td>
                         <td className="p-3">
                           <div>{cota.seller?.full_name || '-'}</div>

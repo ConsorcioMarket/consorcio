@@ -280,6 +280,8 @@ async function main() {
       data: {
         sellerId,
         administrator: cotaData.administrator,
+        cotaNumber: `COTA-${String(i + 1).padStart(4, '0')}`,
+        cotaGroup: `GRP-${String(Math.floor(i / 10) + 1).padStart(3, '0')}`,
         creditAmount: cotaData.creditAmount.toString(),
         outstandingBalance: cotaData.outstandingBalance.toString(),
         nInstallments: cotaData.nInstallments,

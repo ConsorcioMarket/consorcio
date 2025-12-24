@@ -358,12 +358,45 @@ export default function MeusDadosPage() {
     setLoadingPjDocuments(false)
   }
 
+  // Define required PJ document types
+  const REQUIRED_PJ_DOCUMENTS: DocumentType[] = [
+    'PJ_ARTICLES_OF_INCORPORATION',
+    'PJ_PROOF_OF_ADDRESS',
+  ]
+
+  const getDocumentTypeLabel = (type: DocumentType): string => {
+    const labels: Record<string, string> = {
+      'PJ_ARTICLES_OF_INCORPORATION': 'Contrato Social',
+      'PJ_PROOF_OF_ADDRESS': 'Comprovante de Endereço',
+      'PJ_DRE': 'DRE',
+      'PJ_STATEMENT': 'Extrato Bancário',
+      'PJ_EXTRA': 'Documento Extra',
+    }
+    return labels[type] || type
+  }
+
   const handlePJSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
 
     setPjSaving(true)
     setPjError(null)
+
+    // Only validate documents when editing (not creating new company)
+    if (editingPJ) {
+      // Check for required documents
+      const uploadedDocTypes = pjDocuments.map(doc => doc.document_type)
+      const missingDocs = REQUIRED_PJ_DOCUMENTS.filter(
+        reqDoc => !uploadedDocTypes.includes(reqDoc)
+      )
+
+      if (missingDocs.length > 0) {
+        const missingDocLabels = missingDocs.map(getDocumentTypeLabel).join(', ')
+        setPjError(`Por favor, envie os seguintes documentos obrigatórios antes de salvar: ${missingDocLabels}`)
+        setPjSaving(false)
+        return
+      }
+    }
 
     const pjData = {
       pf_id: user.id,
@@ -904,6 +937,25 @@ export default function MeusDadosPage() {
                       Envie os documentos necessários para validar a empresa
                     </p>
                   </div>
+
+                  {/* Required documents warning */}
+                  {(() => {
+                    const uploadedDocTypes = pjDocuments.map(doc => doc.document_type)
+                    const missingDocs = REQUIRED_PJ_DOCUMENTS.filter(
+                      reqDoc => !uploadedDocTypes.includes(reqDoc)
+                    )
+                    if (missingDocs.length > 0) {
+                      return (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                          <p className="text-sm text-yellow-800">
+                            <strong>Atenção:</strong> Os seguintes documentos são obrigatórios:{' '}
+                            {missingDocs.map(getDocumentTypeLabel).join(', ')}
+                          </p>
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
 
                   {loadingPjDocuments ? (
                     <div className="text-center py-8">

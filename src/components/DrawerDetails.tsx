@@ -57,18 +57,18 @@ export function DrawerDetails({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6 animate-fade-in-up">
+        <div className="mt-4 sm:mt-6 space-y-4 sm:space-y-6 animate-fade-in-up">
           {/* Main Values */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-200 hover:shadow-md">
-              <p className="text-sm text-muted-foreground">Valor do Crédito</p>
-              <p className="text-xl font-bold text-[hsl(var(--primary))] tabular-nums">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg transition-all duration-200 hover:shadow-md">
+              <p className="text-xs sm:text-sm text-muted-foreground">Valor do Crédito</p>
+              <p className="text-base sm:text-xl font-bold text-[hsl(var(--primary))] tabular-nums break-all">
                 {formatCurrency(listing.credit_amount)}
               </p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg transition-all duration-200 hover:shadow-md">
-              <p className="text-sm text-muted-foreground">Entrada</p>
-              <p className="text-xl font-bold text-[hsl(var(--primary))] tabular-nums">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg transition-all duration-200 hover:shadow-md">
+              <p className="text-xs sm:text-sm text-muted-foreground">Entrada</p>
+              <p className="text-base sm:text-xl font-bold text-[hsl(var(--primary))] tabular-nums break-all">
                 {formatCurrency(listing.entry_amount)}
               </p>
             </div>
@@ -77,32 +77,32 @@ export function DrawerDetails({
           <Separator />
 
           {/* Financial Details */}
-          <div className="space-y-3">
-            <h4 className="font-semibold">Informações Financeiras</h4>
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="font-semibold text-sm sm:text-base">Informações Financeiras</h4>
 
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Saldo Devedor</span>
-              <span className="font-medium">{formatCurrency(listing.outstanding_balance)}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-muted-foreground text-sm">Saldo Devedor</span>
+              <span className="font-medium text-sm sm:text-base text-right">{formatCurrency(listing.outstanding_balance)}</span>
             </div>
 
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Número de Parcelas</span>
-              <span className="font-medium">{listing.n_installments}x</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-muted-foreground text-sm">Número de Parcelas</span>
+              <span className="font-medium text-sm sm:text-base">{listing.n_installments}x</span>
             </div>
 
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Valor da Parcela</span>
-              <span className="font-medium">{formatCurrency(listing.installment_value)}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-muted-foreground text-sm">Valor da Parcela</span>
+              <span className="font-medium text-sm sm:text-base text-right">{formatCurrency(listing.installment_value)}</span>
             </div>
 
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">% Entrada</span>
-              <span className="font-medium">{formatPercentage(listing.entry_percentage)}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-muted-foreground text-sm">% Entrada</span>
+              <span className="font-medium text-sm sm:text-base">{formatPercentage(listing.entry_percentage)}</span>
             </div>
 
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Taxa Mensal</span>
-              <span className="font-medium">
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-muted-foreground text-sm">Taxa Mensal</span>
+              <span className="font-medium text-sm sm:text-base">
                 {listing.monthly_rate ? formatPercentage(listing.monthly_rate, 4) : '-'}
               </span>
             </div>
@@ -111,18 +111,18 @@ export function DrawerDetails({
           <Separator />
 
           {/* Disclaimer */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3">
-            <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-yellow-800">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 flex gap-2 sm:gap-3">
+            <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <p className="text-xs sm:text-sm text-yellow-800">
               Valores exatos serão confirmados após o vendedor enviar o extrato atualizado do consórcio.
             </p>
           </div>
 
           {/* Action Buttons */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {canPropose && (
               <Button
-                className="w-full press-effect hover-lift"
+                className="w-full press-effect hover-lift text-sm sm:text-base"
                 size="lg"
                 onClick={() => {
                   onInterest(listing.id)
@@ -134,16 +134,16 @@ export function DrawerDetails({
             )}
 
             {isMine && (
-              <div className="text-center p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">
+              <div className="text-center p-3 sm:p-4 bg-muted rounded-lg">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Esta é a sua cota. Você não pode criar uma proposta para ela.
                 </p>
               </div>
             )}
 
             {isReserved && !isMine && (
-              <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
+              <div className="text-center p-3 sm:p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs sm:text-sm text-yellow-800">
                   Esta cota está reservada e não aceita novas propostas no momento.
                 </p>
               </div>
@@ -151,7 +151,7 @@ export function DrawerDetails({
 
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full text-sm sm:text-base"
               onClick={() => onOpenChange(false)}
             >
               Fechar
