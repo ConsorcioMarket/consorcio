@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "prisma": {
-    "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} src/lib/database/seed.ts"
   },
   "scripts": {
     "dev": "next dev -p 3010",
@@ -17,7 +17,6 @@
     "db:migrate:prod": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
-    "db:seed:cotas": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-real-cotas.ts",
     "db:reset": "prisma migrate reset"
   },
   "dependencies": {

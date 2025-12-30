@@ -237,7 +237,7 @@ export function ListingTable({
               {/* Main Values */}
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
-                  <p className="text-xs text-muted-foreground">Crédito</p>
+                  <p className="text-xs text-muted-foreground">Credito</p>
                   <p className="font-bold text-primary text-sm">{formatCurrency(listing.credit_amount)}</p>
                 </div>
                 <div>
@@ -246,7 +246,19 @@ export function ListingTable({
                 </div>
               </div>
 
-              {/* Secondary Values */}
+              {/* Secondary Values - Row 1 */}
+              <div className="grid grid-cols-2 gap-3 mb-2 text-xs">
+                <div>
+                  <p className="text-muted-foreground">Saldo Devedor</p>
+                  <p className="font-medium">{formatCurrency(listing.outstanding_balance)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Valor Parcela</p>
+                  <p className="font-medium">{formatCurrency(listing.installment_value)}</p>
+                </div>
+              </div>
+
+              {/* Secondary Values - Row 2 */}
               <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
                 <div>
                   <p className="text-muted-foreground">Parcelas</p>

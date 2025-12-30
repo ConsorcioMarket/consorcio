@@ -142,6 +142,35 @@ export default function CadastroPage() {
       // Store phone and CPF as digits only in the database
       const phoneDigits = formData.phone.replace(/\D/g, '')
       const cpfDigits = formData.cpf.replace(/\D/g, '')
+
+      // Check if CPF already exists
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { data: existingCpf } = await supabase
+        .from('profiles_pf')
+        .select('id')
+        .eq('cpf', cpfDigits)
+        .maybeSingle()
+
+      if (existingCpf) {
+        setError('Este CPF já está cadastrado.')
+        setLoading(false)
+        return
+      }
+
+      // Check if phone already exists
+      const { data: existingPhone } = await supabase
+        .from('profiles_pf')
+        .select('id')
+        .eq('phone', phoneDigits)
+        .maybeSingle()
+
+      if (existingPhone) {
+        setError('Este telefone já está cadastrado.')
+        setLoading(false)
+        return
+      }
+
       const { error } = await signUp(formData.email, formData.password, {
         full_name: formData.fullName,
         cpf: cpfDigits,
@@ -158,8 +187,8 @@ export default function CadastroPage() {
         return
       }
 
-      // Registration successful - redirect to login page
-      window.location.href = '/login'
+      // Registration successful - redirect to confirmation page for tracking
+      window.location.href = '/cadastro/sucesso'
     } catch {
       setError('Ocorreu um erro ao criar a conta. Tente novamente.')
       setLoading(false)

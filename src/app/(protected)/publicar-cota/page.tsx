@@ -72,7 +72,9 @@ export default function PublicarCotaPage() {
     nInstallments: '',
     installmentValue: '',
     entryAmount: '',
+    outstandingBalance: '',
   })
+  const [useAutoBalance, setUseAutoBalance] = useState(true)
 
   // Calculated values (derived from form state)
   const calculations = useMemo(() => {
@@ -81,14 +83,16 @@ export default function PublicarCotaPage() {
     const installmentValue = parseCurrency(form.installmentValue)
     const nInstallments = parseInt(form.nInstallments) || 0
 
-    // Calculate outstanding balance (Saldo Devedor = Crédito - Entrada)
-    const outstandingBalance = creditAmount - entryAmount
+    // Calculate outstanding balance (Saldo Devedor = Crédito - Entrada) or use manual input
+    const autoBalance = creditAmount - entryAmount
+    const manualBalance = parseCurrency(form.outstandingBalance)
+    const outstandingBalance = useAutoBalance ? autoBalance : (manualBalance > 0 ? manualBalance : autoBalance)
 
     // Calculate entry percentage
     const entryPercentage = calculateEntryPercentage(entryAmount, creditAmount)
 
     // Calculate monthly rate (if we have the required values)
-    // Formula: RATE(n_installments, -installment_value, credit_amount - entry_amount)
+    // Formula: RATE(n_installments, -installment_value, outstanding_balance)
     let monthlyRate = 0
     if (nInstallments > 0 && installmentValue > 0 && outstandingBalance > 0) {
       try {
@@ -109,8 +113,8 @@ export default function PublicarCotaPage() {
       }
     }
 
-    return { entryPercentage, monthlyRate, outstandingBalance }
-  }, [form.creditAmount, form.entryAmount, form.installmentValue, form.nInstallments])
+    return { entryPercentage, monthlyRate, outstandingBalance, autoBalance }
+  }, [form.creditAmount, form.entryAmount, form.installmentValue, form.nInstallments, form.outstandingBalance, useAutoBalance])
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -122,17 +126,46 @@ export default function PublicarCotaPage() {
   // Fetch administrators from database
   useEffect(() => {
     const fetchAdministrators = async () => {
-      // Using type assertion since administrators table may not be in generated types yet
-      const { data, error } = await (supabase
-        .from('administrators' as 'cotas') // Type assertion for new table
-        .select('id, name')
-        .eq('is_active', true)
-        .order('name') as unknown as Promise<{ data: Administrator[] | null; error: Error | null }>)
+      try {
+        // Using type assertion since administrators table may not be in generated types yet
+        const { data, error } = await (supabase
+          .from('administrators' as 'cotas') // Type assertion for new table
+          .select('id, name')
+          .eq('is_active', true)
+          .order('name') as unknown as Promise<{ data: Administrator[] | null; error: Error | null }>)
 
-      if (error) {
-        console.error('Error fetching administrators:', error)
-      } else {
-        setAdministrators(data || [])
+        if (error) {
+          console.error('Error fetching administrators:', error)
+          // Use fallback administrators if fetch fails
+          setAdministrators([
+            { id: '1', name: 'Bradesco' },
+            { id: '2', name: 'Itau' },
+            { id: '3', name: 'Porto Seguro' },
+            { id: '4', name: 'Rodobens' },
+            { id: '5', name: 'Embracon' },
+          ])
+        } else if (data && data.length > 0) {
+          setAdministrators(data)
+        } else {
+          // Use fallback if no data returned
+          setAdministrators([
+            { id: '1', name: 'Bradesco' },
+            { id: '2', name: 'Itau' },
+            { id: '3', name: 'Porto Seguro' },
+            { id: '4', name: 'Rodobens' },
+            { id: '5', name: 'Embracon' },
+          ])
+        }
+      } catch (err) {
+        console.error('Error fetching administrators:', err)
+        // Use fallback administrators on error
+        setAdministrators([
+          { id: '1', name: 'Bradesco' },
+          { id: '2', name: 'Itau' },
+          { id: '3', name: 'Porto Seguro' },
+          { id: '4', name: 'Rodobens' },
+          { id: '5', name: 'Embracon' },
+        ])
       }
       setLoadingAdmins(false)
     }
@@ -164,7 +197,7 @@ export default function PublicarCotaPage() {
     // Validation
     const creditAmount = parseCurrency(form.creditAmount)
     const entryAmount = parseCurrency(form.entryAmount)
-    const outstandingBalance = creditAmount - entryAmount // Auto-calculated
+    const outstandingBalance = calculations.outstandingBalance // Use calculated or manual value
     const installmentValue = parseCurrency(form.installmentValue)
     const nInstallments = parseInt(form.nInstallments) || 0
     const administrator = form.administrator === 'Outra'
@@ -297,7 +330,9 @@ export default function PublicarCotaPage() {
                         nInstallments: '',
                         installmentValue: '',
                         entryAmount: '',
+                        outstandingBalance: '',
                       })
+                      setUseAutoBalance(true)
                     }}
                   >
                     Publicar Outra Cota
@@ -471,17 +506,46 @@ export default function PublicarCotaPage() {
                     </p>
                   </div>
 
-                  {/* Outstanding Balance - Auto-calculated */}
+                  {/* Outstanding Balance - Auto-calculated or manual */}
                   <div className="space-y-2">
-                    <Label htmlFor="outstandingBalance">Saldo Devedor (R$)</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="outstandingBalance">Saldo Devedor (R$)</Label>
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={useAutoBalance}
+                          onChange={(e) => {
+                            setUseAutoBalance(e.target.checked)
+                            if (e.target.checked) {
+                              setForm({ ...form, outstandingBalance: '' })
+                            }
+                          }}
+                          className="h-3 w-3"
+                        />
+                        Auto-calcular
+                      </label>
+                    </div>
                     <Input
                       id="outstandingBalance"
-                      value={calculations.outstandingBalance > 0 ? formatCurrencyForDisplay(calculations.outstandingBalance) : ''}
-                      disabled
-                      className="bg-muted"
+                      placeholder="Ex: 150.000,00"
+                      value={useAutoBalance
+                        ? (calculations.autoBalance > 0 ? formatCurrencyForDisplay(calculations.autoBalance) : '')
+                        : form.outstandingBalance
+                      }
+                      onChange={(e) => {
+                        if (!useAutoBalance) {
+                          const formatted = handleCurrencyInput(e.target.value)
+                          setForm({ ...form, outstandingBalance: formatted })
+                        }
+                      }}
+                      disabled={useAutoBalance}
+                      className={useAutoBalance ? 'bg-muted' : ''}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Calculado automaticamente (Crédito - Entrada)
+                      {useAutoBalance
+                        ? 'Calculado automaticamente (Credito - Entrada)'
+                        : 'Informe o saldo devedor manualmente para calculo correto da TAXA'
+                      }
                     </p>
                   </div>
 
