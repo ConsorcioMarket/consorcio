@@ -90,6 +90,7 @@ export default function CadastroPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{ cpf?: string; phone?: string }>({})
   const [loading, setLoading] = useState(false)
 
   const { signUp } = useAuth()
@@ -129,6 +130,7 @@ export default function CadastroPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setFieldErrors({})
 
     const validationError = validateForm()
     if (validationError) {
@@ -143,30 +145,16 @@ export default function CadastroPage() {
       const phoneDigits = formData.phone.replace(/\D/g, '')
       const cpfDigits = formData.cpf.replace(/\D/g, '')
 
-      // Check if CPF already exists
-      const { createClient } = await import('@/lib/supabase/client')
-      const supabase = createClient()
-      const { data: existingCpf } = await supabase
-        .from('profiles_pf')
-        .select('id')
-        .eq('cpf', cpfDigits)
-        .maybeSingle()
+      // Check for duplicates via backend API
+      const checkRes = await fetch('/api/auth/check-duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cpf: cpfDigits, phone: phoneDigits }),
+      })
 
-      if (existingCpf) {
-        setError('Este CPF já está cadastrado.')
-        setLoading(false)
-        return
-      }
-
-      // Check if phone already exists
-      const { data: existingPhone } = await supabase
-        .from('profiles_pf')
-        .select('id')
-        .eq('phone', phoneDigits)
-        .maybeSingle()
-
-      if (existingPhone) {
-        setError('Este telefone já está cadastrado.')
+      if (checkRes.status === 409) {
+        const { errors } = await checkRes.json()
+        setFieldErrors(errors)
         setLoading(false)
         return
       }
@@ -262,8 +250,11 @@ export default function CadastroPage() {
                 onChange={(e) => handleChange('cpf', formatCPF(e.target.value))}
                 required
                 disabled={loading}
-                className="h-11"
+                className={`h-11 ${fieldErrors.cpf ? 'border-red-500' : ''}`}
               />
+              {fieldErrors.cpf && (
+                <p className="text-sm text-red-500">{fieldErrors.cpf}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -296,9 +287,12 @@ export default function CadastroPage() {
                   onChange={(e) => handleChange('phone', formatPhone(e.target.value))}
                   required
                   disabled={loading}
-                  className="h-11 pl-11"
+                  className={`h-11 pl-11 ${fieldErrors.phone ? 'border-red-500' : ''}`}
                 />
               </div>
+              {fieldErrors.phone && (
+                <p className="text-sm text-red-500">{fieldErrors.phone}</p>
+              )}
             </div>
 
             <div className="space-y-2">

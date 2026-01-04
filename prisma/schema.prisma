@@ -13,8 +13,8 @@ model ProfilePF {
   id                     String            @id @default(uuid())
   email                  String            @default("")
   fullName               String            @map("full_name")
-  cpf                    String?
-  phone                  String
+  cpf                    String?           @unique
+  phone                  String            @unique
   role                   UserRole          @default(USER)
   status                 PFStatus          @default(INCOMPLETE)
   addressStreet          String?           @map("address_street")
